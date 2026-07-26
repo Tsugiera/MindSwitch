@@ -1,0 +1,2564 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<title>MindSwitch - 朝のマインドセット</title>
+<meta name="description" content="毎朝約3分でマインドをセットする朝専用PWAアプリ">
+<meta name="theme-color" content="#F4A94B">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="MindSwitch">
+<style>
+:root{
+  --bg:#FBF8F4;
+  --bg-elevated:#FFFFFF;
+  --bg-sunk:#F1EBE1;
+  --ink:#2B2620;
+  --ink-soft:#6B6155;
+  --ink-faint:#9C9184;
+  --line:#E7DFD2;
+  --dawn-gold:#D9A441;
+  --dawn-gold-deep:#B9852E;
+  --dawn-plum:#7D5A73;
+  --sky-teal:#4F7A68;
+  --sky-teal-bg:#E7F0EB;
+  --alert-coral:#B85440;
+  --alert-coral-bg:#F7E9E4;
+  --focus-ring:#8B6F2E;
+  --radius-s:10px;
+  --radius-m:16px;
+  --radius-l:22px;
+  --safe-top:env(safe-area-inset-top,0px);
+  --safe-bottom:env(safe-area-inset-bottom,0px);
+  --font-scale:1;
+  color-scheme: light;
+}
+:root[data-theme="dark"]{
+  --bg:#1E1B22;
+  --bg-elevated:#2A2530;
+  --bg-sunk:#252029;
+  --ink:#F3EDE4;
+  --ink-soft:#C9BFAF;
+  --ink-faint:#8A8072;
+  --line:#3A3440;
+  --dawn-gold:#E8B95C;
+  --dawn-gold-deep:#F2C878;
+  --dawn-plum:#B994AC;
+  --sky-teal:#7FB79C;
+  --sky-teal-bg:#25332C;
+  --alert-coral:#E08A72;
+  --alert-coral-bg:#3A2A26;
+  --focus-ring:#E8B95C;
+  color-scheme: dark;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  background:var(--bg);
+  color:var(--ink);
+  font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic","Noto Sans JP",sans-serif;
+  font-size:calc(16px * var(--font-scale));
+  line-height:1.6;
+  -webkit-text-size-adjust:100%;
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background .25s ease,color .25s ease;
+}
+h1,h2,h3{
+  font-family:"Hiragino Mincho ProN","Yu Mincho",serif;
+  font-weight:600;
+  letter-spacing:.03em;
+  margin:0;
+}
+button{font-family:inherit;font-size:inherit;}
+.visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0;}
+#app{max-width:480px;margin:0 auto;min-height:100vh;padding-top:var(--safe-top);padding-bottom:var(--safe-bottom);position:relative;}
+.screen{display:none;padding:16px 16px calc(96px + var(--safe-bottom));min-height:100vh;animation:fadeIn .2s ease;}
+.screen.active{display:block;}
+@media (prefers-reduced-motion:reduce){.screen{animation:none;}*{animation-duration:.001s !important;transition-duration:.001s !important;}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(4px);}to{opacity:1;transform:translateY(0);}}
+
+/* ===== Dawn signature header ===== */
+.dawn-header{
+  position:relative;border-radius:var(--radius-l);overflow:hidden;
+  padding:22px 18px 18px;margin-bottom:16px;
+  background:linear-gradient(180deg,var(--dawn-plum) 0%,var(--dawn-gold) 100%);
+  color:#fff;
+}
+:root[data-theme="dark"] .dawn-header{background:linear-gradient(180deg,#2E2536 0%,#5C4322 100%);}
+.dawn-header .sun{
+  position:absolute;right:-18px;top:-18px;width:88px;height:88px;border-radius:50%;
+  background:radial-gradient(circle at 35% 35%,#FFF3D6,var(--dawn-gold) 70%);
+  opacity:.9;
+}
+.dawn-header h1{font-size:1.5rem;color:#fff;position:relative;}
+.dawn-header p{margin:6px 0 0;font-size:.92rem;opacity:.95;position:relative;}
+.dawn-header .date-line{margin-top:10px;font-size:.8rem;opacity:.9;position:relative;}
+
+/* ===== Cards ===== */
+.card{
+  background:var(--bg-elevated);border:1px solid var(--line);border-radius:var(--radius-m);
+  padding:16px;margin-bottom:12px;box-shadow:0 1px 2px rgba(43,38,32,.04);
+}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;}
+.stat-box{background:var(--bg-elevated);border:1px solid var(--line);border-radius:var(--radius-m);padding:12px;text-align:center;}
+.stat-box .num{font-size:1.5rem;font-weight:700;color:var(--dawn-gold-deep);}
+:root[data-theme="dark"] .stat-box .num{color:var(--dawn-gold);}
+.stat-box .label{font-size:.75rem;color:var(--ink-soft);margin-top:2px;}
+
+/* ===== Buttons ===== */
+.btn{
+  display:flex;align-items:center;justify-content:center;gap:6px;
+  width:100%;min-height:48px;padding:12px 16px;border-radius:var(--radius-s);
+  border:1px solid transparent;font-weight:600;cursor:pointer;text-align:center;
+  transition:transform .08s ease,filter .15s ease;
+}
+.btn:active{transform:scale(.98);}
+.btn:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;}
+.btn-primary{background:var(--dawn-gold);color:#2B2620;font-size:1.02rem;}
+.btn-primary:hover{filter:brightness(1.05);}
+.btn-secondary{background:var(--bg-sunk);color:var(--ink);border-color:var(--line);}
+.btn-outline{background:transparent;color:var(--ink);border-color:var(--line);}
+.btn-teal{background:var(--sky-teal-bg);color:var(--sky-teal);}
+.btn-danger{background:var(--alert-coral-bg);color:var(--alert-coral);}
+.btn-text{background:none;border:none;color:var(--dawn-gold-deep);min-height:44px;padding:8px;}
+:root[data-theme="dark"] .btn-text{color:var(--dawn-gold);}
+.btn-sm{min-height:40px;padding:8px 12px;font-size:.85rem;}
+.btn-row{display:flex;gap:10px;}
+.btn-row .btn{flex:1;}
+.stack{display:flex;flex-direction:column;gap:10px;}
+
+/* ===== Form elements ===== */
+label.field-label{display:block;font-weight:600;font-size:.9rem;margin-bottom:6px;}
+.hint{font-size:.78rem;color:var(--ink-faint);margin-top:4px;}
+input[type=text],input[type=time],input[type=search],textarea,select{
+  width:100%;padding:12px;border-radius:var(--radius-s);border:1px solid var(--line);
+  background:var(--bg-elevated);color:var(--ink);font-size:1rem;min-height:44px;
+}
+textarea{min-height:88px;resize:vertical;}
+input:focus-visible,textarea:focus-visible,select:focus-visible,button:focus-visible{
+  outline:3px solid var(--focus-ring);outline-offset:1px;
+}
+.char-count{font-size:.72rem;color:var(--ink-faint);text-align:right;margin-top:2px;}
+.field{margin-bottom:16px;}
+
+/* ===== Chips ===== */
+.chip-group{display:flex;flex-wrap:wrap;gap:8px;}
+.chip{
+  padding:10px 14px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg-elevated);
+  color:var(--ink);cursor:pointer;font-size:.92rem;min-height:44px;
+}
+.chip[aria-pressed="true"]{background:var(--dawn-gold);border-color:var(--dawn-gold-deep);color:#2B2620;font-weight:700;}
+.chip:focus-visible{outline:3px solid var(--focus-ring);outline-offset:2px;}
+
+/* ===== Step header ===== */
+.step-topbar{position:sticky;top:0;background:var(--bg);padding-top:6px;z-index:5;}
+.step-nav-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;}
+.icon-btn{background:var(--bg-sunk);border:1px solid var(--line);border-radius:var(--radius-s);min-width:44px;min-height:44px;display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);}
+.step-progress-label{font-size:.8rem;color:var(--ink-soft);text-align:center;margin-bottom:6px;}
+.dawn-arc{position:relative;height:40px;margin:0 4px 14px;}
+.dawn-arc .track{position:absolute;left:0;right:0;top:20px;height:4px;background:var(--line);border-radius:2px;}
+.dawn-arc .fill{position:absolute;left:0;top:20px;height:4px;background:linear-gradient(90deg,var(--dawn-plum),var(--dawn-gold));border-radius:2px;transition:width .3s ease;}
+.dawn-arc .sunpos{position:absolute;top:8px;width:26px;height:26px;border-radius:50%;background:radial-gradient(circle at 35% 35%,#FFF3D6,var(--dawn-gold) 70%);box-shadow:0 0 0 3px var(--bg);transition:left .3s ease;transform:translateX(-50%);}
+
+/* ===== Save status ===== */
+.save-status{display:flex;align-items:center;gap:6px;font-size:.75rem;color:var(--ink-faint);padding:4px 2px;min-height:20px;}
+.save-status .dot{width:8px;height:8px;border-radius:50%;background:var(--ink-faint);}
+.save-status.saved .dot{background:var(--sky-teal);}
+.save-status.saving .dot{background:var(--dawn-gold);}
+.save-status.error{color:var(--alert-coral);}
+.save-status.error .dot{background:var(--alert-coral);}
+
+/* ===== Bottom nav for wizard ===== */
+.wizard-footer{
+  position:fixed;left:0;right:0;bottom:0;background:var(--bg-elevated);border-top:1px solid var(--line);
+  padding:10px 16px calc(10px + var(--safe-bottom));max-width:480px;margin:0 auto;
+}
+.home-fab-area{position:fixed;left:0;right:0;bottom:0;max-width:480px;margin:0 auto;padding:10px 16px calc(10px + var(--safe-bottom));}
+
+/* ===== Toast / banner ===== */
+.banner{border-radius:var(--radius-s);padding:10px 12px;font-size:.85rem;margin-bottom:12px;}
+.banner-gentle{background:var(--sky-teal-bg);color:var(--sky-teal);}
+.banner-warn{background:var(--alert-coral-bg);color:var(--alert-coral);}
+.toast{
+  position:fixed;left:16px;right:16px;bottom:calc(90px + var(--safe-bottom));max-width:448px;margin:0 auto;
+  background:var(--ink);color:var(--bg);padding:12px 14px;border-radius:var(--radius-s);
+  display:flex;justify-content:space-between;align-items:center;gap:10px;z-index:50;font-size:.86rem;
+  box-shadow:0 4px 16px rgba(0,0,0,.2);
+}
+:root[data-theme="dark"] .toast{background:var(--bg-elevated);color:var(--ink);border:1px solid var(--line);}
+.toast button{background:none;border:none;color:inherit;font-weight:700;text-decoration:underline;cursor:pointer;min-height:32px;}
+
+/* ===== History list ===== */
+.history-item{
+  display:flex;justify-content:space-between;align-items:center;gap:10px;
+  padding:12px;border:1px solid var(--line);border-radius:var(--radius-m);margin-bottom:8px;background:var(--bg-elevated);
+  cursor:pointer;text-align:left;width:100%;
+}
+.history-item .meta{font-size:.78rem;color:var(--ink-soft);}
+.badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:.7rem;font-weight:700;}
+.badge-done{background:var(--sky-teal-bg);color:var(--sky-teal);}
+.badge-draft{background:var(--bg-sunk);color:var(--ink-soft);}
+
+/* ===== Calendar ===== */
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:4px;text-align:center;}
+.cal-grid .cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;border-radius:8px;font-size:.78rem;position:relative;}
+.cal-grid .cell.done{background:var(--sky-teal-bg);color:var(--sky-teal);font-weight:700;}
+.cal-grid .cell.today{outline:2px solid var(--dawn-gold);}
+.cal-grid .dow{font-size:.7rem;color:var(--ink-faint);}
+
+/* ===== Modal ===== */
+.modal-overlay{position:fixed;inset:0;background:rgba(43,38,32,.5);display:flex;align-items:flex-end;justify-content:center;z-index:100;}
+.modal-overlay.center{align-items:center;padding:16px;}
+.modal-sheet{
+  background:var(--bg-elevated);width:100%;max-width:480px;border-radius:20px 20px 0 0;
+  padding:18px 18px calc(18px + var(--safe-bottom));max-height:85vh;overflow-y:auto;
+}
+.modal-overlay.center .modal-sheet{border-radius:var(--radius-l);}
+.modal-sheet h2{font-size:1.1rem;margin-bottom:10px;}
+
+/* ===== misc ===== */
+.section-title{font-size:.98rem;font-weight:700;margin:18px 0 8px;color:var(--ink);}
+.section-title:first-child{margin-top:0;}
+.divider{height:1px;background:var(--line);margin:14px 0;}
+.small{font-size:.78rem;color:var(--ink-soft);}
+.settings-row{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--line);}
+.settings-row:last-child{border-bottom:none;}
+.switch{position:relative;width:46px;height:26px;flex:none;}
+.switch input{opacity:0;width:0;height:0;}
+.switch .track{position:absolute;inset:0;background:var(--line);border-radius:999px;cursor:pointer;transition:background .15s;}
+.switch input:checked + .track{background:var(--dawn-gold);}
+.switch .thumb{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:left .15s;}
+.switch input:checked ~ .thumb{left:23px;}
+.switch input:focus-visible ~ .track{outline:3px solid var(--focus-ring);outline-offset:2px;}
+.pill-select{display:flex;gap:6px;flex-wrap:wrap;}
+.pill-select button{padding:8px 12px;border-radius:999px;border:1.5px solid var(--line);background:var(--bg-elevated);color:var(--ink);cursor:pointer;font-size:.82rem;min-height:40px;}
+.pill-select button[aria-pressed=true]{background:var(--dawn-gold);border-color:var(--dawn-gold-deep);color:#2B2620;font-weight:700;}
+.empty-state{text-align:center;padding:40px 16px;color:var(--ink-soft);}
+.breath-circle{width:120px;height:120px;border-radius:50%;background:radial-gradient(circle,var(--dawn-gold) 0%,var(--dawn-plum) 100%);margin:20px auto;animation:breathe 8s ease-in-out infinite;}
+@media (prefers-reduced-motion:reduce){.breath-circle{animation:none;}}
+@keyframes breathe{0%,100%{transform:scale(.8);}50%{transform:scale(1.15);}}
+.confetti-wrap{position:relative;height:0;}
+.top-app-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;}
+.link-btn{background:none;border:none;color:var(--dawn-gold-deep);cursor:pointer;font-size:.85rem;text-decoration:underline;padding:8px;min-height:40px;}
+:root[data-theme="dark"] .link-btn{color:var(--dawn-gold);}
+fieldset{border:none;padding:0;margin:0;}
+legend{padding:0;font-weight:600;font-size:.9rem;margin-bottom:6px;}
+.candidate-btn{display:block;width:100%;text-align:left;padding:12px;border-radius:var(--radius-s);border:1.5px solid var(--line);background:var(--bg-elevated);color:var(--ink);cursor:pointer;margin-bottom:8px;font-size:.92rem;}
+.candidate-btn[aria-pressed=true]{border-color:var(--sky-teal);background:var(--sky-teal-bg);}
+</style>
+</head>
+<body>
+<div id="app">
+
+<div id="liveregion" aria-live="polite" class="visually-hidden"></div>
+
+<!-- ============ HOME ============ -->
+<section id="screen-home" class="screen" aria-labelledby="home-title">
+  <header class="dawn-header">
+    <div class="sun" aria-hidden="true"></div>
+    <h1 id="home-title">MindSwitch</h1>
+    <p id="home-greeting">おはよう！今日のマインドをセットしよう</p>
+    <div class="date-line" id="home-date"></div>
+  </header>
+
+  <div id="home-status-banner"></div>
+
+  <div class="stat-grid">
+    <div class="stat-box"><div class="num" id="stat-current">0</div><div class="label">連続達成日数</div></div>
+    <div class="stat-box"><div class="num" id="stat-best">0</div><div class="label">最高連続記録</div></div>
+    <div class="stat-box"><div class="num" id="stat-month">0</div><div class="label">今月の達成回数</div></div>
+    <div class="stat-box"><div class="num" id="stat-total">0</div><div class="label">累計達成日数</div></div>
+  </div>
+
+  <div class="card" id="home-today-word" style="display:none;">
+    <div class="section-title">今日のひとこと</div>
+    <p id="today-word-text" style="margin:0;"></p>
+  </div>
+
+  <div class="stack">
+    <button class="btn btn-primary" id="btn-start" style="font-size:1.08rem;">3分でスタート</button>
+    <button class="btn btn-secondary" id="btn-resume" style="display:none;">前回の続きから再開</button>
+    <button class="btn btn-primary" id="btn-today-confirm" style="display:none;font-size:1.08rem;">今日の内容を確認</button>
+    <button class="btn btn-secondary" id="btn-today-edit" style="display:none;">今日の内容を修正</button>
+    <div class="btn-row">
+      <button class="btn btn-outline" id="btn-history">履歴</button>
+      <button class="btn btn-outline" id="btn-settings">設定</button>
+    </div>
+    <button class="btn btn-text" id="btn-help">使い方・ヘルプ</button>
+  </div>
+</section>
+
+<!-- ============ WIZARD ============ -->
+<section id="screen-wizard" class="screen" aria-labelledby="wizard-step-title">
+  <div class="step-topbar">
+    <div class="step-nav-row">
+      <button class="icon-btn" id="btn-wizard-home" aria-label="ホームへ戻る">⌂</button>
+      <div class="step-progress-label" id="step-progress-label">ステップ 1 / 4</div>
+      <button class="icon-btn" id="btn-wizard-menu" aria-label="メニュー">⋯</button>
+    </div>
+    <div class="dawn-arc" role="img" aria-label="進行状況">
+      <div class="track"></div>
+      <div class="fill" id="dawn-fill"></div>
+      <div class="sunpos" id="dawn-sun"></div>
+    </div>
+    <div class="save-status" id="save-status" role="status"><span class="dot"></span><span id="save-status-text">保存済み</span></div>
+  </div>
+
+  <div id="step-container"></div>
+
+  <div class="wizard-footer">
+    <div class="btn-row">
+      <button class="btn btn-outline" id="btn-prev" style="flex:0 0 88px;">前へ</button>
+      <button class="btn btn-primary" id="btn-next">次へ</button>
+    </div>
+  </div>
+</section>
+
+<!-- ============ COMPLETE ============ -->
+<section id="screen-complete" class="screen" aria-labelledby="complete-title">
+  <div class="dawn-header">
+    <div class="sun" aria-hidden="true"></div>
+    <h1 id="complete-title">今日のマインドセット完了！</h1>
+    <p>いってらっしゃい！</p>
+    <div class="date-line" id="complete-datetime"></div>
+  </div>
+  <div id="complete-body"></div>
+  <div class="stack" style="margin-top:14px;">
+    <button class="btn btn-primary" id="btn-complete-confirm">今日の内容を確認</button>
+    <button class="btn btn-secondary" id="btn-complete-home">ホームへ戻る</button>
+  </div>
+</section>
+
+<!-- ============ HISTORY ============ -->
+<section id="screen-history" class="screen" aria-labelledby="history-title">
+  <div class="top-app-row">
+    <button class="icon-btn" id="btn-history-back" aria-label="ホームへ戻る">⌂</button>
+    <h2 id="history-title">履歴</h2>
+    <button class="icon-btn" id="btn-history-calendar" aria-label="カレンダー表示切替">▦</button>
+  </div>
+  <div class="card">
+    <div class="field" style="margin-bottom:10px;">
+      <label class="field-label" for="history-search">検索</label>
+      <input type="search" id="history-search" placeholder="集中タスクやメモから検索">
+    </div>
+    <div class="field" style="margin-bottom:0;">
+      <label class="field-label">気分で絞り込み</label>
+      <div class="pill-select" id="history-mood-filter"></div>
+    </div>
+  </div>
+  <div id="history-calendar-wrap" class="card" style="display:none;"></div>
+  <div id="history-list"></div>
+  <div class="divider"></div>
+  <button class="btn btn-text" id="btn-open-trash">ゴミ箱を見る</button>
+</section>
+
+<!-- ============ DAY DETAIL ============ -->
+<section id="screen-detail" class="screen" aria-labelledby="detail-title">
+  <div class="top-app-row">
+    <button class="icon-btn" id="btn-detail-back" aria-label="履歴へ戻る">←</button>
+    <h2 id="detail-title">記録の詳細</h2>
+    <span></span>
+  </div>
+  <div id="detail-body"></div>
+  <div id="detail-actions" class="stack" style="margin-top:12px;"></div>
+</section>
+
+<!-- ============ TRASH ============ -->
+<section id="screen-trash" class="screen" aria-labelledby="trash-title">
+  <div class="top-app-row">
+    <button class="icon-btn" id="btn-trash-back" aria-label="履歴へ戻る">←</button>
+    <h2 id="trash-title">ゴミ箱</h2>
+    <span></span>
+  </div>
+  <p class="small">ゴミ箱内の記録は自動では削除されません。完全に削除するまで復元できます。</p>
+  <div id="trash-list"></div>
+</section>
+
+<!-- ============ SETTINGS ============ -->
+<section id="screen-settings" class="screen" aria-labelledby="settings-title">
+  <div class="top-app-row">
+    <button class="icon-btn" id="btn-settings-back" aria-label="ホームへ戻る">⌂</button>
+    <h2 id="settings-title">設定</h2>
+    <span></span>
+  </div>
+
+  <div class="section-title">基本設定</div>
+  <div class="card">
+    <div class="field">
+      <label class="field-label" for="set-nickname">ニックネーム</label>
+      <input type="text" id="set-nickname" maxlength="20">
+    </div>
+    <div class="settings-row">
+      <span>テーマ</span>
+      <div class="pill-select" id="set-theme">
+        <button data-v="light">ライト</button><button data-v="dark">ダーク</button><button data-v="system">端末設定</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span>文字サイズ</span>
+      <div class="pill-select" id="set-fontsize">
+        <button data-v="small">小</button><button data-v="standard">標準</button><button data-v="large">大</button><button data-v="xlarge">特大</button>
+      </div>
+    </div>
+    <div class="settings-row">
+      <span>週の開始曜日</span>
+      <div class="pill-select" id="set-weekstart">
+        <button data-v="0">日曜</button><button data-v="1">月曜</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-title">通知</div>
+  <div class="card">
+    <div class="settings-row">
+      <span>通知</span>
+      <label class="switch"><input type="checkbox" id="set-notif-enabled"><span class="track"></span><span class="thumb"></span></label>
+    </div>
+    <div class="field" style="margin-top:10px;">
+      <label class="field-label" for="set-notif-time">通知希望時刻</label>
+      <input type="time" id="set-notif-time" value="07:00">
+    </div>
+    <button class="btn btn-outline btn-sm" id="btn-notif-test">通知をテスト</button>
+    <div class="banner banner-warn" id="notif-support-note" style="margin-top:10px;"></div>
+  </div>
+
+  <div class="section-title">プライバシー</div>
+  <div class="card">
+    <div class="settings-row">
+      <span>不安・心配事を履歴に保存する</span>
+      <label class="switch"><input type="checkbox" id="set-save-anxiety"><span class="track"></span><span class="thumb"></span></label>
+    </div>
+    <p class="small">オフにすると、不安・心配事の入力内容は保存されず、その場で変換のみに使われます。</p>
+  </div>
+
+  <div class="section-title">サウンド・振動</div>
+  <div class="card">
+    <div class="settings-row"><span>効果音</span><label class="switch"><input type="checkbox" id="set-sound"><span class="track"></span><span class="thumb"></span></label></div>
+    <div class="settings-row"><span>振動</span><label class="switch"><input type="checkbox" id="set-vibration"><span class="track"></span><span class="thumb"></span></label></div>
+  </div>
+
+  <div class="section-title">データ保護</div>
+  <div class="card" id="data-protection-card"></div>
+  <div class="stack">
+    <div class="btn-row"><button class="btn btn-outline btn-sm" id="btn-save-now">今すぐ保存</button><button class="btn btn-outline btn-sm" id="btn-backup-now">バックアップ作成</button></div>
+    <div class="btn-row"><button class="btn btn-outline btn-sm" id="btn-export">JSONで書き出す</button><button class="btn btn-outline btn-sm" id="btn-import">JSONから読み込む</button></div>
+    <input type="file" id="file-import" accept="application/json" class="visually-hidden">
+    <button class="btn btn-outline btn-sm" id="btn-backup-list">バックアップ一覧・復元</button>
+    <div class="btn-row"><button class="btn btn-outline btn-sm" id="btn-integrity">データ整合性を確認</button><button class="btn btn-outline btn-sm" id="btn-repair">データを修復</button></div>
+    <button class="btn btn-outline btn-sm" id="btn-persist-storage">永続ストレージを許可する</button>
+  </div>
+
+  <div class="section-title">その他</div>
+  <div class="card stack">
+    <button class="btn btn-outline btn-sm" id="btn-privacy-info">プライバシーについて</button>
+    <button class="btn btn-outline btn-sm" id="btn-app-info">アプリ情報・バージョン</button>
+    <button class="btn btn-danger btn-sm" id="btn-reset-all">すべてのデータを初期化</button>
+  </div>
+</section>
+
+<!-- ============ HELP ============ -->
+<section id="screen-help" class="screen" aria-labelledby="help-title">
+  <div class="top-app-row">
+    <button class="icon-btn" id="btn-help-back" aria-label="ホームへ戻る">⌂</button>
+    <h2 id="help-title">使い方・ヘルプ</h2>
+    <span></span>
+  </div>
+  <div class="card">
+    <div class="section-title">MindSwitchについて</div>
+    <p class="small">毎朝、約3分で4つのステップに答えることで、その日のマインドを整えるアプリです。すべての項目は「参考」であり、無理に前向きになる必要はありません。答えたくない項目はスキップできます。</p>
+    <div class="section-title">4つのステップ</div>
+    <p class="small">① ご機嫌約束：今日の気分を自分で選びます<br>② ネガティブ変換：不安や心配ごとの見方を変えるヒントを出します<br>③ ベビーステップ：やりたいことを、今すぐ始められる小さな一歩にします<br>④ 集中宣言：一番集中したいことと、最初の行動を決めます</p>
+    <div class="section-title">データについて</div>
+    <p class="small">入力内容は、原則としてこの端末の中だけに保存されます。外部のサーバーには送信されません。詳しくは設定内の「プライバシーについて」をご覧ください。</p>
+  </div>
+</section>
+
+</div>
+
+<div id="modal-root"></div>
+<div id="toast-root"></div>
+
+<script>
+(function(){
+"use strict";
+
+/* =========================================================
+   0. 定数・ユーティリティ
+========================================================= */
+const APP_NAME = "MindSwitch";
+const APP_VERSION = "1.3.0";
+const DATA_FORMAT_VERSION = 1;
+const IDB_NAME = "mindswitch_db";
+const IDB_STORE = "kv";
+const LS_KEY = "mindswitch_appData_v1";
+const LS_QUARANTINE_PREFIX = "mindswitch_quarantine_";
+const MAX_BACKUP_GENERATIONS = 10;
+const DRAFT_DEBOUNCE_MS = 500;
+
+function pad2(n){ return String(n).padStart(2,"0"); }
+function todayLocalStr(d){
+  d = d || new Date();
+  return d.getFullYear() + "-" + pad2(d.getMonth()+1) + "-" + pad2(d.getDate());
+}
+function nowIso(){ return new Date().toISOString(); }
+function uid(){ return "id_" + Date.now().toString(36) + "_" + Math.random().toString(36).slice(2,9); }
+function escapeHtml(s){
+  if(s===undefined || s===null) return "";
+  return String(s).replace(/[&<>"']/g,function(c){
+    return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c];
+  });
+}
+function announce(msg){
+  const el = document.getElementById("liveregion");
+  if(el){ el.textContent = ""; requestAnimationFrame(()=>{ el.textContent = msg; }); }
+}
+// 簡易チェックサム（暗号学的ではない整合性検証用）
+function simpleChecksum(str){
+  let h1 = 0xdeadbeef, h2 = 0x41c6ce57;
+  for(let i=0;i<str.length;i++){
+    const ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1>>>16), 2246822507) ^ Math.imul(h2 ^ (h2>>>13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2>>>16), 2246822507) ^ Math.imul(h1 ^ (h1>>>13), 3266489909);
+  return (4294967296 * (2097151 & h2) + (h1>>>0)).toString(36);
+}
+function deepClone(o){ return JSON.parse(JSON.stringify(o)); }
+
+/* =========================================================
+   1. デフォルトデータ構造
+========================================================= */
+function defaultSettings(){
+  return {
+    userId: uid(),
+    nickname: "",
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    theme: "system",
+    fontSize: "standard",
+    notifEnabled: false,
+    notifTime: "07:00",
+    saveAnxiety: true,
+    soundEnabled: true,
+    vibrationEnabled: true,
+    weekStart: 0
+  };
+}
+function emptyAppData(){
+  return {
+    dataFormatVersion: DATA_FORMAT_VERSION,
+    appName: APP_NAME,
+    appVersion: APP_VERSION,
+    createdAt: nowIso(),
+    updatedAt: nowIso(),
+    settings: defaultSettings(),
+    records: [],
+    trash: [],
+    backups: [],
+    draft: null,
+    meta: {
+      lastBackupAt: null,
+      firstBackupPromptShownAt: null
+    }
+  };
+}
+
+/* =========================================================
+   2. ストレージ層（IndexedDB 主 + localStorage 補助）
+========================================================= */
+const Storage = {
+  idb: null,
+  idbAvailable: false,
+  lsAvailable: false,
+
+  async init(){
+    this.lsAvailable = this._testLocalStorage();
+    this.idbAvailable = await this._openIdb();
+  },
+
+  _testLocalStorage(){
+    try{
+      const k = "__mindswitch_test__";
+      localStorage.setItem(k,"1");
+      localStorage.removeItem(k);
+      return true;
+    }catch(e){ return false; }
+  },
+
+  _openIdb(){
+    return new Promise((resolve)=>{
+      if(!window.indexedDB){ resolve(false); return; }
+      try{
+        const req = indexedDB.open(IDB_NAME, 1);
+        req.onupgradeneeded = function(ev){
+          const db = ev.target.result;
+          if(!db.objectStoreNames.contains(IDB_STORE)){
+            db.createObjectStore(IDB_STORE, {keyPath:"key"});
+          }
+        };
+        req.onsuccess = (ev)=>{ this.idb = ev.target.result; resolve(true); };
+        req.onerror = ()=> resolve(false);
+        req.onblocked = ()=> resolve(false);
+      }catch(e){ resolve(false); }
+    });
+  },
+
+  idbGet(key){
+    return new Promise((resolve,reject)=>{
+      if(!this.idb){ reject("no-idb"); return; }
+      try{
+        const tx = this.idb.transaction(IDB_STORE,"readonly");
+        const store = tx.objectStore(IDB_STORE);
+        const req = store.get(key);
+        req.onsuccess = ()=> resolve(req.result ? req.result.value : undefined);
+        req.onerror = ()=> reject(req.error);
+      }catch(e){ reject(e); }
+    });
+  },
+
+  idbSet(key, value){
+    return new Promise((resolve,reject)=>{
+      if(!this.idb){ reject("no-idb"); return; }
+      let settled = false;
+      try{
+        const tx = this.idb.transaction(IDB_STORE,"readwrite");
+        const store = tx.objectStore(IDB_STORE);
+        store.put({key:key, value:value});
+        // req.onsuccess だけでは書き込みがディスクへ確定した保証にならないため、
+        // トランザクション全体の完了（tx.oncomplete）を待ってから確定とみなす。
+        tx.oncomplete = ()=>{ if(!settled){ settled = true; resolve(true); } };
+        tx.onerror = ()=>{ if(!settled){ settled = true; reject(tx.error); } };
+        tx.onabort = ()=>{ if(!settled){ settled = true; reject(tx.error || "aborted"); } };
+      }catch(e){ reject(e); }
+    });
+  },
+
+  lsGet(key){
+    try{
+      const raw = localStorage.getItem(key);
+      return raw ? JSON.parse(raw) : undefined;
+    }catch(e){ return undefined; }
+  },
+
+  lsSet(key, value){
+    try{
+      localStorage.setItem(key, JSON.stringify(value));
+      return true;
+    }catch(e){ return false; }
+  },
+
+  quarantine(raw, reason){
+    try{
+      const key = LS_QUARANTINE_PREFIX + Date.now();
+      localStorage.setItem(key, typeof raw==="string" ? raw : JSON.stringify(raw));
+      console.warn("MindSwitch: 破損の疑いがあるデータを隔離しました", reason, key);
+    }catch(e){ /* 隔離も失敗した場合は諦める（既存データは削除しない） */ }
+  }
+};
+
+function withChecksum(data){
+  const clone = deepClone(data);
+  delete clone._checksum;
+  const cs = simpleChecksum(JSON.stringify(clone));
+  clone._checksum = cs;
+  return clone;
+}
+function verifyChecksum(data){
+  if(!data || typeof data !== "object") return false;
+  const stored = data._checksum;
+  if(!stored) return false;
+  const clone = deepClone(data);
+  delete clone._checksum;
+  return simpleChecksum(JSON.stringify(clone)) === stored;
+}
+function structureLooksValid(data){
+  return data && typeof data==="object" && Array.isArray(data.records) && Array.isArray(data.trash) &&
+    Array.isArray(data.backups) && data.settings && typeof data.settings==="object";
+}
+
+/* =========================================================
+   3. アプリ状態
+========================================================= */
+let AppData = null;
+let currentScreen = "home";
+let wizardState = null; // { date, step(1-4), fields:{...}, editingRecordId }
+let saveTimer = null;
+let idbWriteFailedOnce = false;
+let notifTimerHandle = null;
+let lastConvCandidates = [];
+
+/* =========================================================
+   4. 読み込み・保存・復旧ロジック
+========================================================= */
+async function loadAppData(){
+  await Storage.init();
+
+  let idbData, lsData;
+  try{ idbData = Storage.idbAvailable ? await Storage.idbGet("appData") : undefined; }catch(e){ idbData = undefined; }
+  try{ lsData = Storage.lsAvailable ? Storage.lsGet(LS_KEY) : undefined; }catch(e){ lsData = undefined; }
+
+  const idbValid = idbData && verifyChecksum(idbData) && structureLooksValid(idbData);
+  const lsValid = lsData && verifyChecksum(lsData) && structureLooksValid(lsData);
+
+  let chosen = null, source = null;
+
+  if(idbValid && lsValid){
+    // 両方正常 → 更新日時が新しい方を優先
+    chosen = (new Date(idbData.updatedAt||0) >= new Date(lsData.updatedAt||0)) ? idbData : lsData;
+    source = "both";
+  }else if(idbValid){
+    chosen = idbData; source = "idb-only";
+    if(lsData) Storage.quarantine(lsData, "localStorage checksum invalid");
+  }else if(lsValid){
+    chosen = lsData; source = "ls-only";
+    if(idbData) Storage.quarantine(idbData, "IndexedDB checksum invalid");
+  }else{
+    // 両方無効 → バックアップ世代から復旧を試みる
+    const candidates = [idbData, lsData].filter(Boolean);
+    for(const c of candidates){
+      if(c && Array.isArray(c.backups) && c.backups.length){
+        const sorted = [...c.backups].sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt));
+        for(const bk of sorted){
+          if(bk && bk.snapshot && verifyChecksum(bk.snapshot) && structureLooksValid(bk.snapshot)){
+            chosen = bk.snapshot; source = "backup-recovery"; break;
+          }
+        }
+      }
+      if(chosen) break;
+    }
+    if(!chosen){
+      if(idbData) Storage.quarantine(idbData, "both invalid, idb raw");
+      if(lsData) Storage.quarantine(lsData, "both invalid, ls raw");
+      chosen = emptyAppData();
+      source = "fresh";
+    }
+  }
+
+  chosen = migrateIfNeeded(chosen);
+  AppData = chosen;
+  recomputeAggregates();
+  return source;
+}
+
+/* ---- レコード構造の自動検出・正規化（sanitizeRecord） ----
+   欠落・破損したstep1〜step4を安全な既定値で補い、
+   表示・描画処理でのTypeErrorを未然に防ぐ。
+   loadAppData()（migrateIfNeeded経由）とimportJsonObject()の
+   両方の入口で必ず通す。 */
+function defaultStep1(){ return {mood:"", promise:false, promiseText:""}; }
+function defaultStep2(){ return {anxietyText:"", convertedText:"", convertedSelected:"", skipped:false}; }
+function defaultStep3(){ return {action:"", babyStep:"", plannedTime:"", duration:""}; }
+function defaultStep4(){ return {focusTask:"", startTime:"", firstAction:"", obstacle:"", countermeasure:"", declared:false}; }
+
+function sanitizeRecord(r){
+  if(!r || typeof r !== "object") r = {};
+  if(!r.id || typeof r.id !== "string") r.id = uid();
+  if(!r.date || typeof r.date !== "string") r.date = todayLocalStr();
+  r.completed = !!r.completed;
+  r.deleted = !!r.deleted;
+  if(!r.createdAt) r.createdAt = r.updatedAt || nowIso();
+  if(!r.updatedAt) r.updatedAt = r.createdAt;
+
+  r.step1 = Object.assign(defaultStep1(), (r.step1 && typeof r.step1==="object") ? r.step1 : {});
+  r.step2 = Object.assign(defaultStep2(), (r.step2 && typeof r.step2==="object") ? r.step2 : {});
+  r.step3 = Object.assign(defaultStep3(), (r.step3 && typeof r.step3==="object") ? r.step3 : {});
+  r.step4 = Object.assign(defaultStep4(), (r.step4 && typeof r.step4==="object") ? r.step4 : {});
+
+  if(typeof r.step1.mood !== "string") r.step1.mood = "";
+  if(typeof r.step1.promiseText !== "string") r.step1.promiseText = "";
+  r.step1.promise = !!r.step1.promise;
+
+  if(typeof r.step2.anxietyText !== "string") r.step2.anxietyText = "";
+  if(typeof r.step2.convertedText !== "string") r.step2.convertedText = "";
+  if(typeof r.step2.convertedSelected !== "string") r.step2.convertedSelected = "";
+  r.step2.skipped = !!r.step2.skipped;
+
+  if(typeof r.step3.action !== "string") r.step3.action = "";
+  if(typeof r.step3.babyStep !== "string") r.step3.babyStep = "";
+  if(typeof r.step3.plannedTime !== "string") r.step3.plannedTime = "";
+  if(typeof r.step3.duration !== "string") r.step3.duration = "";
+
+  if(typeof r.step4.focusTask !== "string") r.step4.focusTask = "";
+  if(typeof r.step4.startTime !== "string") r.step4.startTime = "";
+  if(typeof r.step4.firstAction !== "string") r.step4.firstAction = "";
+  if(typeof r.step4.obstacle !== "string") r.step4.obstacle = "";
+  if(typeof r.step4.countermeasure !== "string") r.step4.countermeasure = "";
+  r.step4.declared = !!r.step4.declared;
+
+  return r;
+}
+function sanitizeRecords(arr){
+  if(!Array.isArray(arr)) return [];
+  return arr.map(sanitizeRecord);
+}
+// 下書き（wizardStateの保存形）の欠落フィールドを既定値で補う
+function sanitizeDraft(draft){
+  if(!draft || typeof draft !== "object") return draft;
+  draft.fields = Object.assign(newWizardFields(), (draft.fields && typeof draft.fields==="object") ? draft.fields : {});
+  if(!draft.date) draft.date = todayLocalStr();
+  if(!draft.step || draft.step<1 || draft.step>4) draft.step = 1;
+  return draft;
+}
+
+function migrateIfNeeded(data){
+  if(!data.dataFormatVersion || data.dataFormatVersion < DATA_FORMAT_VERSION){
+    // 将来の形式変更に備えた移行フック。現状はv1のみ。
+    data.dataFormatVersion = DATA_FORMAT_VERSION;
+  }
+  if(!data.settings) data.settings = defaultSettings();
+  if(!Array.isArray(data.records)) data.records = [];
+  if(!Array.isArray(data.trash)) data.trash = [];
+  if(!Array.isArray(data.backups)) data.backups = [];
+  if(!data.meta) data.meta = {lastBackupAt:null, firstBackupPromptShownAt:null};
+  // レコード構造を強制的に正規化し、欠落したstep1〜4を補う
+  data.records = sanitizeRecords(data.records);
+  data.trash = sanitizeRecords(data.trash);
+  if(data.draft) data.draft = sanitizeDraft(data.draft);
+  return data;
+}
+
+let saveInFlight = false;
+let saveQueued = false;
+async function persist(opts){
+  opts = opts || {};
+  if(saveInFlight){ saveQueued = true; return; }
+  saveInFlight = true;
+  setSaveStatus("saving");
+  AppData.updatedAt = nowIso();
+  const payload = withChecksum(AppData);
+
+  let idbOk = false, lsOk = false;
+  try{
+    if(Storage.idbAvailable){ await Storage.idbSet("appData", payload); idbOk = true; }
+  }catch(e){ idbOk = false; }
+  try{
+    if(Storage.lsAvailable){ lsOk = Storage.lsSet(LS_KEY, payload); }
+  }catch(e){ lsOk = false; }
+
+  saveInFlight = false;
+  if(saveQueued){ saveQueued = false; persist(opts); return; }
+
+  if(idbOk || lsOk){
+    setSaveStatus("saved");
+  }else{
+    setSaveStatus("error");
+    announce("保存に失敗しました。入力内容は画面に保持されています。");
+  }
+  return idbOk || lsOk;
+}
+
+function setSaveStatus(state){
+  const el = document.getElementById("save-status");
+  const txt = document.getElementById("save-status-text");
+  if(!el || !txt) return;
+  el.className = "save-status " + state;
+  if(state==="saving"){ txt.textContent = "保存中…"; }
+  else if(state==="saved"){ txt.textContent = "保存済み"; }
+  else if(state==="error"){ txt.textContent = "保存に失敗しました（再試行します）"; }
+}
+
+function scheduleSave(){
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(()=>{ persist(); }, DRAFT_DEBOUNCE_MS);
+}
+function saveNowImmediate(){
+  clearTimeout(saveTimer);
+  return persist();
+}
+
+// pagehide / visibilitychange は非同期処理の完了を待たずにページが破棄される可能性があるため、
+// まず同期的な localStorage への書き込みを即座に確定させ、そのうえで非同期のIndexedDB保存も試みる。
+function emergencySaveSync(){
+  try{
+    clearTimeout(saveTimer);
+    if(!AppData) return;
+    AppData.updatedAt = nowIso();
+    const payload = withChecksum(AppData);
+    if(Storage.lsAvailable){ Storage.lsSet(LS_KEY, payload); }
+    if(Storage.idbAvailable){ Storage.idbSet("appData", payload).catch(()=>{}); }
+  }catch(e){ /* 緊急保存自体が失敗しても、画面遷移をブロックしない */ }
+}
+
+// 終了・非表示イベントでの保存
+["pagehide","visibilitychange","beforeunload"].forEach(evt=>{
+  window.addEventListener(evt, ()=>{
+    if(document.visibilityState === "hidden" || evt !== "visibilitychange"){
+      emergencySaveSync();
+    }
+  });
+});
+window.addEventListener("error", function(ev){
+  // JS例外発生時も、下書きだけは緊急保存を試みる
+  try{ if(wizardState){ commitWizardFieldsToDraft(); saveNowImmediate(); } }catch(e){}
+});
+
+/* =========================================================
+   5. バックアップ / エクスポート / インポート
+========================================================= */
+function createBackupGeneration(label){
+  const snapshot = deepClone(AppData);
+  delete snapshot.backups; // バックアップ自身は入れ子にしない
+  snapshot.backups = [];
+  const entry = {
+    id: uid(),
+    createdAt: nowIso(),
+    label: label || "自動バックアップ",
+    recordCount: AppData.records.length,
+    snapshot: withChecksum(snapshot)
+  };
+  AppData.backups.push(entry);
+  AppData.backups.sort((a,b)=> new Date(a.createdAt) - new Date(b.createdAt));
+  while(AppData.backups.length > MAX_BACKUP_GENERATIONS){ AppData.backups.shift(); }
+  AppData.meta.lastBackupAt = nowIso();
+  return entry;
+}
+
+function exportJson(){
+  const payload = {
+    appName: APP_NAME,
+    appVersion: APP_VERSION,
+    dataFormatVersion: DATA_FORMAT_VERSION,
+    exportedAt: nowIso(),
+    settings: AppData.settings,
+    records: AppData.records,
+    trash: AppData.trash
+  };
+  const withCs = withChecksum(payload);
+  const blob = new Blob([JSON.stringify(withCs, null, 2)], {type:"application/json"});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  const fname = "MindSwitch_export_" + todayLocalStr() + ".json";
+  a.href = url; a.download = fname;
+  document.body.appendChild(a);
+  try{ a.click(); }catch(e){ showToast("ダウンロードに失敗しました。ブラウザの設定をご確認ください。"); }
+  document.body.removeChild(a);
+  setTimeout(()=> URL.revokeObjectURL(url), 4000);
+}
+
+function validateImportFile(obj){
+  const errors = [];
+  if(!obj || typeof obj !== "object") errors.push("ファイルの形式が正しくありません。");
+  else{
+    if(!Array.isArray(obj.records)) errors.push("記録データが見つかりません。");
+    if(!obj.dataFormatVersion) errors.push("データ形式のバージョン情報がありません。");
+  }
+  return errors;
+}
+
+function importJsonObject(obj, mode){
+  const errors = validateImportFile(obj);
+  if(errors.length){ return {ok:false, errors}; }
+
+  createBackupGeneration("インポート前の自動バックアップ");
+
+  let added=0, updated=0, ignored=0, errorCount=0;
+  const existingById = new Map(AppData.records.map(r=>[r.id,r]));
+  const existingByDate = new Map(AppData.records.map(r=>[r.date,r]));
+
+  if(mode === "overwrite"){
+    AppData.records = [];
+    existingById.clear(); existingByDate.clear();
+  }
+
+  (obj.records||[]).forEach(rawRec=>{
+    try{
+      if(!rawRec || !rawRec.date){ errorCount++; return; }
+      // インポートされたレコードは、形式の新旧・破損有無に関わらず
+      // ここで必ずstep1〜4を補正・正規化してから取り込む
+      const rec = sanitizeRecord(deepClone(rawRec));
+      const dupById = rec.id && existingById.get(rec.id);
+      const dupByDate = existingByDate.get(rec.date);
+      const dup = dupById || dupByDate;
+      if(dup){
+        const incomingTime = new Date(rec.updatedAt||0).getTime();
+        const existingTime = new Date(dup.updatedAt||0).getTime();
+        if(incomingTime > existingTime){
+          Object.assign(dup, rec);
+          sanitizeRecord(dup);
+          updated++;
+        }else{
+          ignored++;
+        }
+      }else{
+        AppData.records.push(rec);
+        existingById.set(rec.id, rec);
+        existingByDate.set(rec.date, rec);
+        added++;
+      }
+    }catch(e){ errorCount++; }
+  });
+
+  if(Array.isArray(obj.trash)){
+    obj.trash.forEach(t=>{
+      if(t && t.id && !AppData.trash.find(x=>x.id===t.id)){
+        try{ AppData.trash.push(sanitizeRecord(deepClone(t))); }catch(e){}
+      }
+    });
+  }
+
+  recomputeAggregates();
+  saveNowImmediate();
+  return {ok:true, added, updated, ignored, errorCount};
+}
+
+/* =========================================================
+   6. 記録・集計ロジック
+========================================================= */
+function getActiveRecords(){ return AppData.records.filter(r=>!r.deleted); }
+
+function findTodayRecord(){
+  const t = todayLocalStr();
+  return getActiveRecords().find(r=>r.date===t);
+}
+
+function recomputeAggregates(){
+  const dates = [...new Set(getActiveRecords().filter(r=>r.completed).map(r=>r.date))].sort();
+  AppData.meta.streakCurrent = computeCurrentStreak(dates);
+  AppData.meta.streakBest = computeBestStreak(dates);
+  AppData.meta.totalCompleted = dates.length;
+  const now = new Date();
+  const ym = now.getFullYear()+"-"+pad2(now.getMonth()+1);
+  AppData.meta.monthCount = dates.filter(d=>d.startsWith(ym)).length;
+}
+
+function computeCurrentStreak(sortedDates){
+  if(!sortedDates.length) return 0;
+  const set = new Set(sortedDates);
+  const today = todayLocalStr();
+  let cursor = set.has(today) ? new Date() : new Date(Date.now()-86400000);
+  if(!set.has(todayLocalStr(cursor))) return 0;
+  let count = 0;
+  while(set.has(todayLocalStr(cursor))){
+    count++;
+    cursor = new Date(cursor.getTime()-86400000);
+  }
+  return count;
+}
+function computeBestStreak(sortedDates){
+  if(!sortedDates.length) return 0;
+  let best=1, cur=1;
+  for(let i=1;i<sortedDates.length;i++){
+    const prev = new Date(sortedDates[i-1]+"T00:00:00");
+    const cur2 = new Date(sortedDates[i]+"T00:00:00");
+    const diffDays = Math.round((cur2-prev)/86400000);
+    if(diffDays===1){ cur++; }else{ cur=1; }
+    if(cur>best) best=cur;
+  }
+  return best;
+}
+
+/* =========================================================
+   7. 変換ルールエンジン（ネガティブ→前向きヒント）
+========================================================= */
+const REFRAME_RULES = [
+  { kws:["失敗"], candidates:[
+    "失敗しない準備として、今できる小さな行動を一つ考えてみましょう",
+    "結果を完全に決めることはできませんが、準備の質は上げられます",
+    "失敗しても、次に改善するための情報が得られます"
+  ]},
+  { kws:["つらい","しんどい","疲れ"], candidates:[
+    "今日一日すべてではなく、最初の10分だけに集中してみましょう",
+    "無理をせず、終わらせる範囲を小さく決めてみましょう",
+    "体調が悪い場合は、休息や相談も選択肢に入れてください"
+  ]},
+  { kws:["不安","心配"], candidates:[
+    "その不安の中で、今すぐ自分にできることを一つだけ探してみましょう",
+    "不安がすべて外れることもあります。今は準備できる範囲に目を向けてみましょう",
+    "紙に書き出すだけでも、頭の中が少し整理されることがあります"
+  ]},
+  { kws:["自信がない","できない","無理"], candidates:[
+    "「今はまだできない」と「一生できない」は違います。今日の一歩だけ考えてみましょう",
+    "完璧にできなくても、少し前進できれば十分です",
+    "できないと感じるときほど、一番小さい行動から始めてみましょう"
+  ]},
+  { kws:["怒","イライラ"], candidates:[
+    "その気持ちの奥にある「大事にしたいこと」は何か、少し考えてみましょう",
+    "一呼吸置いてから、伝え方を選んでみましょう",
+    "反応する前に、事実と自分の解釈を分けてみましょう"
+  ]},
+  { kws:["人間関係","苦手","嫌い"], candidates:[
+    "相手のすべてに合わせる必要はありません。今日必要な距離感を決めてみましょう",
+    "自分の対応だけをコントロールする、と決めてみましょう",
+    "小さな挨拶や一言だけ、今日試してみるのも一つの方法です"
+  ]}
+];
+const REFRAME_GENERIC = [
+  "その気持ちを否定せず、まず今日一つだけできることを考えてみましょう",
+  "全部を一度に解決しなくて大丈夫です。今できる範囲を決めてみましょう",
+  "同じ状況でも、見る角度を変えると違う選択肢が見えることがあります",
+  "今の気持ちをそのまま認めた上で、次の30分だけ考えてみましょう"
+];
+function generateReframeCandidates(text, excludeSet){
+  const pool = [];
+  REFRAME_RULES.forEach(rule=>{
+    if(rule.kws.some(k=>text.includes(k))){ pool.push(...rule.candidates); }
+  });
+  pool.push(...REFRAME_GENERIC);
+  const unique = [...new Set(pool)].filter(c=> !excludeSet || !excludeSet.has(c));
+  return unique.slice(0,3);
+}
+
+const BABY_STEP_SUGGESTIONS = [
+  "アプリを開く","必要な道具を机に置く","1分だけ取り組む","最初の1行を書く","最初の1項目だけ確認する","5分のタイマーをセットする"
+];
+
+/* =========================================================
+   8. 画面遷移
+========================================================= */
+function showScreen(name, opts){
+  opts = opts || {};
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  const el = document.getElementById("screen-"+name);
+  if(el) el.classList.add("active");
+  currentScreen = name;
+  window.scrollTo(0,0);
+  if(!opts.noHistory){
+    try{ history.pushState({screen:name}, "", "#"+name); }catch(e){}
+  }
+  const focusTarget = el ? el.querySelector("h1,h2") : null;
+  if(focusTarget){ focusTarget.setAttribute("tabindex","-1"); focusTarget.focus({preventScroll:true}); }
+}
+window.addEventListener("popstate", (ev)=>{
+  const state = ev.state || {screen:"home"};
+  const screen = state.screen || "home";
+
+  // ウィザード画面内でステップ情報を伴う遷移の場合は、ホームへ抜けるのではなく
+  // 該当ステップへ戻す（スマホの「戻る」操作を1ステップ分の巻き戻しにする）
+  if(screen === "wizard" && wizardState && typeof state.step === "number"){
+    wizardState.step = state.step;
+    commitWizardFieldsToDraft();
+    document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+    const wizEl = document.getElementById("screen-wizard");
+    if(wizEl) wizEl.classList.add("active");
+    currentScreen = "wizard";
+    renderWizardStep();
+    return;
+  }
+
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  const el = document.getElementById("screen-"+screen);
+  if(el) el.classList.add("active");
+  currentScreen = screen;
+  // ウィザードから離脱する場合は、念のため下書きを保存しておく
+  if(wizardState && screen !== "wizard"){ commitWizardFieldsToDraft(); scheduleSave(); }
+  renderCurrentScreen();
+});
+
+function renderCurrentScreen(){
+  if(currentScreen==="home") renderHome();
+  else if(currentScreen==="wizard") renderWizardStep();
+  else if(currentScreen==="history") renderHistory();
+  else if(currentScreen==="detail") renderRecordConfirm();
+  else if(currentScreen==="trash") renderTrash();
+  else if(currentScreen==="settings") renderSettings();
+}
+
+/* =========================================================
+   9. トースト・モーダル
+========================================================= */
+function showToast(msg, actionLabel, actionFn, timeoutMs){
+  const root = document.getElementById("toast-root");
+  root.innerHTML = "";
+  const t = document.createElement("div");
+  t.className = "toast";
+  t.setAttribute("role","status");
+  t.innerHTML = `<span>${escapeHtml(msg)}</span>`;
+  if(actionLabel){
+    const b = document.createElement("button");
+    b.textContent = actionLabel;
+    b.onclick = ()=>{ root.innerHTML=""; actionFn && actionFn(); };
+    t.appendChild(b);
+  }
+  root.appendChild(t);
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(()=>{ if(root.contains(t)) root.innerHTML=""; }, timeoutMs || 6000);
+}
+
+function openModal(html, opts){
+  opts = opts || {};
+  const root = document.getElementById("modal-root");
+  const overlay = document.createElement("div");
+  overlay.className = "modal-overlay" + (opts.center? " center":"");
+  overlay.innerHTML = `<div class="modal-sheet" role="dialog" aria-modal="true">${html}</div>`;
+  overlay.addEventListener("click",(e)=>{ if(e.target===overlay && opts.dismissable!==false) closeModal(); });
+  root.innerHTML = "";
+  root.appendChild(overlay);
+  const firstFocusable = overlay.querySelector("button, input, textarea, select, [tabindex]");
+  if(firstFocusable) firstFocusable.focus();
+  return overlay;
+}
+function closeModal(){ document.getElementById("modal-root").innerHTML = ""; }
+
+function confirmDialog(title, message, confirmLabel, opts){
+  return new Promise(resolve=>{
+    opts = opts || {};
+    const overlay = openModal(`
+      <h2>${escapeHtml(title)}</h2>
+      <p class="small" style="margin-bottom:16px;">${escapeHtml(message)}</p>
+      ${opts.requireText ? `<div class="field"><label class="field-label" for="confirm-text-input">「${escapeHtml(opts.requireText)}」と入力してください</label><input type="text" id="confirm-text-input"></div>` : ""}
+      <div class="btn-row">
+        <button class="btn btn-outline" id="confirm-cancel">キャンセル</button>
+        <button class="btn ${opts.danger? "btn-danger":"btn-primary"}" id="confirm-ok">${escapeHtml(confirmLabel)}</button>
+      </div>
+    `, {center:true});
+    overlay.querySelector("#confirm-cancel").onclick = ()=>{ closeModal(); resolve(false); };
+    overlay.querySelector("#confirm-ok").onclick = ()=>{
+      if(opts.requireText){
+        const val = overlay.querySelector("#confirm-text-input").value;
+        if(val !== opts.requireText){ showToast("入力内容が一致しません"); return; }
+      }
+      closeModal(); resolve(true);
+    };
+  });
+}
+
+/* =========================================================
+   10. ホーム画面
+========================================================= */
+function renderHome(){
+  const d = new Date();
+  const weekdays = ["日","月","火","水","木","金","土"];
+  document.getElementById("home-date").textContent = `${d.getFullYear()}年${d.getMonth()+1}月${d.getDate()}日（${weekdays[d.getDay()]}）`;
+
+  const hour = d.getHours();
+  const greetingEl = document.getElementById("home-greeting");
+  if(hour>=4 && hour<11){ greetingEl.textContent = "おはよう！今日のマインドをセットしよう"; }
+  else if(hour>=11 && hour<17){ greetingEl.textContent = "こんにちは。今からでもマインドをセットできます"; }
+  else{ greetingEl.textContent = "こんばんは。落ち着いて、今日を振り返ってみましょう"; }
+
+  recomputeAggregates();
+  document.getElementById("stat-current").textContent = AppData.meta.streakCurrent||0;
+  document.getElementById("stat-best").textContent = AppData.meta.streakBest||0;
+  document.getElementById("stat-month").textContent = AppData.meta.monthCount||0;
+  document.getElementById("stat-total").textContent = AppData.meta.totalCompleted||0;
+
+  const todayRec = findTodayRecord();
+  const banner = document.getElementById("home-status-banner");
+  const startBtn = document.getElementById("btn-start");
+  const resumeBtn = document.getElementById("btn-resume");
+  const confirmBtn = document.getElementById("btn-today-confirm");
+  const editBtn = document.getElementById("btn-today-edit");
+  startBtn.textContent = "3分でスタート";
+  resumeBtn.textContent = "前回の続きから再開";
+
+  const activeDraft = AppData.draft && AppData.draft.date === todayLocalStr() ? AppData.draft : null;
+  const isEditDraft = !!(activeDraft && activeDraft.editingRecordId);
+
+  if(isEditDraft){
+    // 「今日の内容を修正」を開始した途中の下書きが残っている場合。
+    // 元の完成記録はまだ書き換えられていないため、確認画面では元の内容が見える。
+    banner.innerHTML = `<div class="banner banner-warn">今日の内容を修正中です。続きから再開できます。</div>`;
+    startBtn.style.display = "none";
+    resumeBtn.textContent = "修正の続きから再開";
+    resumeBtn.style.display = "block";
+    confirmBtn.style.display = todayRec ? "block" : "none";
+    editBtn.style.display = "none";
+  }else if(todayRec && todayRec.completed){
+    banner.innerHTML = `<div class="banner banner-gentle">今日のマインドセットは完了しています。内容を確認するか、修正できます。</div>`;
+    startBtn.style.display = "none";
+    resumeBtn.style.display = "none";
+    confirmBtn.style.display = "block";
+    editBtn.style.display = "block";
+  }else if(activeDraft){
+    banner.innerHTML = `<div class="banner banner-warn">下書きが保存されています。続きから再開できます。</div>`;
+    startBtn.style.display = "block";
+    resumeBtn.style.display = "block";
+    confirmBtn.style.display = "none";
+    editBtn.style.display = "none";
+  }else{
+    banner.innerHTML = "";
+    startBtn.style.display = "block";
+    resumeBtn.style.display = "none";
+    confirmBtn.style.display = "none";
+    editBtn.style.display = "none";
+  }
+
+  const wordEl = document.getElementById("home-today-word");
+  const words = ["今日は昨日より少しだけ前を向ければ十分です。","小さな一歩も、積み重なれば大きな距離になります。","無理をしないことも、今日の立派な選択です。","完璧でなくても、今日の自分を認めてあげましょう。"];
+  const wordText = words[d.getDate() % words.length];
+  document.getElementById("today-word-text").textContent = wordText;
+  wordEl.style.display = "block";
+}
+
+document.getElementById("btn-start").addEventListener("click", ()=>{
+  const todayRec = findTodayRecord();
+  if(todayRec && todayRec.completed){
+    beginEditRecord(todayRec);
+  }else{
+    startWizard();
+  }
+});
+document.getElementById("btn-resume").addEventListener("click", ()=>{ resumeDraft(); });
+document.getElementById("btn-today-confirm").addEventListener("click", ()=>{
+  const rec = findTodayRecord();
+  if(rec) openRecordConfirm(rec.id, "today");
+});
+document.getElementById("btn-today-edit").addEventListener("click", ()=>{
+  const rec = findTodayRecord();
+  if(rec) beginEditRecord(rec);
+});
+document.getElementById("btn-history").addEventListener("click", ()=> showScreen("history"));
+document.getElementById("btn-settings").addEventListener("click", ()=> showScreen("settings"));
+document.getElementById("btn-help").addEventListener("click", ()=> showScreen("help"));
+document.getElementById("btn-help-back").addEventListener("click", ()=> showScreen("home"));
+
+/* =========================================================
+   11. ウィザード（4ステップ入力）
+========================================================= */
+function newWizardFields(){
+  return {
+    mood:"", promise:false, promiseText:"",
+    anxietyText:"", convertedText:"", convertedSelected:"", convertedSkipped:false,
+    action:"", babyStep:"", plannedTime:"", duration:"",
+    focusTask:"", startTime:"", firstAction:"", obstacle:"", countermeasure:"", declared:false
+  };
+}
+
+// ウィザード画面に入る際、ステップ番号を history の state に載せて
+// pushStateする。以後、ステップの前後移動もすべてhistory経由で行うことで、
+// スマホの「戻る」操作がホームへの離脱ではなく「1つ前のステップへ戻る」
+// 動作になるようにする。
+function enterWizardScreen(){
+  showScreen("wizard", {noHistory:true});
+  try{ history.pushState({screen:"wizard", step:wizardState.step}, "", "#wizard-step"+wizardState.step); }catch(e){}
+  renderWizardStep();
+}
+function startWizard(){
+  const existingDraft = AppData.draft;
+  if(existingDraft && existingDraft.date === todayLocalStr()){
+    wizardState = sanitizeDraft(deepClone(existingDraft));
+  }else{
+    wizardState = { date: todayLocalStr(), step:1, fields: newWizardFields(), editingRecordId:null, createdAt: nowIso() };
+    AppData.draft = deepClone(wizardState);
+    scheduleSave();
+  }
+  enterWizardScreen();
+}
+function resumeDraft(){
+  if(AppData.draft){
+    wizardState = sanitizeDraft(deepClone(AppData.draft));
+    enterWizardScreen();
+  }else{
+    startWizard();
+  }
+}
+function startWizardFromRecord(rec, keepSnapshot){
+  rec = sanitizeRecord(rec);
+  wizardState = {
+    date: rec.date, step:1,
+    fields: {
+      mood:rec.step1.mood, promise:rec.step1.promise, promiseText:rec.step1.promiseText,
+      anxietyText:rec.step2.anxietyText||"", convertedText:rec.step2.convertedText||"", convertedSelected:rec.step2.convertedSelected||"", convertedSkipped:rec.step2.skipped||false,
+      action:rec.step3.action, babyStep:rec.step3.babyStep, plannedTime:rec.step3.plannedTime, duration:rec.step3.duration,
+      focusTask:rec.step4.focusTask, startTime:rec.step4.startTime, firstAction:rec.step4.firstAction, obstacle:rec.step4.obstacle, countermeasure:rec.step4.countermeasure, declared:rec.step4.declared
+    },
+    editingRecordId: rec.id, createdAt: rec.createdAt,
+    // 修正セッションの場合、破棄時に戻せるよう修正開始前の記録全体を保持しておく。
+    // 新規入力時（keepSnapshot未指定）はnullのままにする。
+    preEditSnapshot: keepSnapshot ? deepClone(rec) : null
+  };
+  // 編集用の一時データ（下書き）を直ちに永続化し、リロード後も再開できるようにする。
+  commitWizardFieldsToDraft();
+  scheduleSave();
+  enterWizardScreen();
+}
+
+// 「今日の内容を修正」「この記録を修正」から呼ばれる、確認済み記録の修正開始処理。
+// 修正前に必ず自動バックアップを作成し、既存の完成記録は直接書き換えず、
+// 編集用の一時データ（下書き）とスナップショットのみを新たに作る。
+function beginEditRecord(rec){
+  rec = sanitizeRecord(rec);
+  createBackupGeneration("記録修正前の自動バックアップ");
+  saveNowImmediate();
+  startWizardFromRecord(rec, true);
+}
+
+function commitWizardFieldsToDraft(){
+  if(!wizardState) return;
+  AppData.draft = deepClone(wizardState);
+  AppData.draft.updatedAt = nowIso();
+}
+
+let fieldDebounceTimer = null;
+function onFieldChange(key, value){
+  wizardState.fields[key] = value;
+  commitWizardFieldsToDraft();
+  clearTimeout(fieldDebounceTimer);
+  fieldDebounceTimer = setTimeout(()=>{ scheduleSave(); }, DRAFT_DEBOUNCE_MS);
+}
+
+function updateDawnArc(){
+  const pct = ((wizardState.step-1)/3)*100;
+  document.getElementById("dawn-fill").style.width = pct+"%";
+  document.getElementById("dawn-sun").style.left = pct+"%";
+  document.getElementById("step-progress-label").textContent = `ステップ ${wizardState.step} / 4`;
+}
+
+function renderWizardStep(){
+  if(!wizardState) { showScreen("home"); return; }
+  updateDawnArc();
+  const c = document.getElementById("step-container");
+  const f = wizardState.fields;
+  const prevBtn = document.getElementById("btn-prev");
+  const nextBtn = document.getElementById("btn-next");
+  prevBtn.style.visibility = wizardState.step===1 ? "hidden" : "visible";
+  nextBtn.textContent = wizardState.step===4 ? "宣言して完了する" : "次へ";
+
+  if(wizardState.step===1){
+    const moods = ["ワクワク","穏やか","パワフル","前向き","集中","自然体"];
+    c.innerHTML = `
+      <h2>今日はどんな気持ちで過ごす？</h2>
+      <p class="small">今日の気分を、周囲の出来事だけに任せず、自分で選んでみましょう。</p>
+      <fieldset class="field" style="margin-top:14px;">
+        <legend>気分を1つ選ぶ</legend>
+        <div class="chip-group" id="mood-chips" role="radiogroup" aria-label="今日の気分">
+          ${moods.map(m=>`<button type="button" class="chip" role="radio" aria-checked="${f.mood===m}" aria-pressed="${f.mood===m}" data-mood="${m}">${m}</button>`).join("")}
+        </div>
+      </fieldset>
+      <div class="field">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="promise-check" ${f.promise?"checked":""} style="width:20px;height:20px;">
+          <span>自分と約束する</span>
+        </label>
+      </div>
+      <div class="field">
+        <label class="field-label" for="promise-text">今日、自分の機嫌を守るために意識すること（任意）</label>
+        <textarea id="promise-text" maxlength="200" placeholder="例：嫌なことがあっても一呼吸置く">${escapeHtml(f.promiseText)}</textarea>
+        <div class="char-count"><span id="promise-text-count">${f.promiseText.length}</span>/200</div>
+      </div>
+      <div id="step1-guide"></div>
+    `;
+    c.querySelectorAll("#mood-chips .chip").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        f.mood = btn.dataset.mood;
+        c.querySelectorAll("#mood-chips .chip").forEach(b=>{ b.setAttribute("aria-checked", b===btn); b.setAttribute("aria-pressed", b===btn); });
+        onFieldChange("mood", f.mood);
+      });
+    });
+    document.getElementById("promise-check").addEventListener("change",(e)=> onFieldChange("promise", e.target.checked));
+    const pt = document.getElementById("promise-text");
+    pt.addEventListener("input",(e)=>{
+      document.getElementById("promise-text-count").textContent = e.target.value.length;
+      onFieldChange("promiseText", e.target.value);
+    });
+  }
+
+  else if(wizardState.step===2){
+    c.innerHTML = `
+      <h2>いま頭にある不安や心配ごとは何？</h2>
+      <p class="small">現実を否定せず、見方を変えるヒントを一緒に探してみましょう。答えたくない場合はスキップできます。</p>
+      <div class="field">
+        <label class="field-label" for="anxiety-text">不安や心配ごと（任意）</label>
+        <textarea id="anxiety-text" maxlength="300" placeholder="例：失敗したらどうしよう">${escapeHtml(f.anxietyText)}</textarea>
+        <div class="char-count"><span id="anxiety-text-count">${f.anxietyText.length}</span>/300</div>
+        <p class="hint" id="anxiety-privacy-hint"></p>
+      </div>
+      <div class="btn-row" style="margin-bottom:14px;">
+        <button class="btn btn-outline" id="btn-skip-convert">スキップ</button>
+        <button class="btn btn-teal" id="btn-do-convert">見方を変えてみる</button>
+      </div>
+      <div id="convert-candidates"></div>
+      <div class="field" id="convert-edit-wrap" style="display:${f.convertedSelected?"block":"none"};">
+        <label class="field-label" for="convert-edit">選んだ内容を自分で修正できます</label>
+        <textarea id="convert-edit" maxlength="300">${escapeHtml(f.convertedText)}</textarea>
+      </div>
+    `;
+    const hint = document.getElementById("anxiety-privacy-hint");
+    hint.textContent = AppData.settings.saveAnxiety ? "この内容は端末内の履歴に保存されます（設定で変更できます）。" : "設定により、この内容は履歴に保存されません。その場での変換にのみ使われます。";
+
+    const ta = document.getElementById("anxiety-text");
+    ta.addEventListener("input",(e)=>{
+      document.getElementById("anxiety-text-count").textContent = e.target.value.length;
+      onFieldChange("anxietyText", e.target.value);
+    });
+    document.getElementById("btn-skip-convert").addEventListener("click", ()=>{
+      f.convertedSkipped = true; f.convertedSelected=""; f.convertedText="";
+      onFieldChange("convertedSkipped", true);
+      renderWizardStep();
+      announce("変換をスキップしました");
+    });
+    document.getElementById("btn-do-convert").addEventListener("click", ()=>{
+      const text = document.getElementById("anxiety-text").value.trim();
+      if(!text){ showToast("よろしければ、不安や心配ごとを一言だけ書いてみてください。書かずに進むこともできます。"); return; }
+      lastConvCandidates = generateReframeCandidates(text, null);
+      renderConvertCandidates();
+    });
+    if(f.convertedSelected){ renderConvertCandidates(true); }
+
+    const editArea = document.getElementById("convert-edit");
+    editArea.addEventListener("input",(e)=> onFieldChange("convertedText", e.target.value));
+  }
+
+  else if(wizardState.step===3){
+    c.innerHTML = `
+      <h2>今日やることを、今すぐ始められる大きさにしよう</h2>
+      <div class="field">
+        <label class="field-label" for="action-input">今日やりたい行動</label>
+        <input type="text" id="action-input" maxlength="60" placeholder="例：資料を作成する" value="${escapeHtml(f.action)}">
+      </div>
+      <div class="field">
+        <label class="field-label" for="babystep-input">最初の小さな一歩</label>
+        <textarea id="babystep-input" maxlength="120" placeholder="例：資料ファイルを開いてタイトルを書く">${escapeHtml(f.babyStep)}</textarea>
+        <div id="babystep-guide"></div>
+      </div>
+      <fieldset class="field">
+        <legend>小さな一歩の候補</legend>
+        <div class="chip-group">
+          ${BABY_STEP_SUGGESTIONS.map(s=>`<button type="button" class="chip" data-suggest="${escapeHtml(s)}">${s}</button>`).join("")}
+        </div>
+      </fieldset>
+      <button class="btn btn-outline btn-sm" id="btn-smaller" style="margin-bottom:14px;">さらに小さくする</button>
+      <div class="btn-row">
+        <div class="field" style="flex:1;">
+          <label class="field-label" for="planned-time">実行予定時間</label>
+          <input type="time" id="planned-time" value="${escapeHtml(f.plannedTime)}">
+        </div>
+        <div class="field" style="flex:1;">
+          <label class="field-label" for="duration-input">所要時間の目安</label>
+          <input type="text" id="duration-input" maxlength="20" placeholder="例：5分" value="${escapeHtml(f.duration)}">
+        </div>
+      </div>
+    `;
+    document.getElementById("action-input").addEventListener("input",(e)=> onFieldChange("action", e.target.value));
+    const bs = document.getElementById("babystep-input");
+    bs.addEventListener("input",(e)=>{
+      onFieldChange("babyStep", e.target.value);
+      updateBabyStepGuide(e.target.value);
+    });
+    updateBabyStepGuide(f.babyStep);
+    c.querySelectorAll("[data-suggest]").forEach(btn=>{
+      btn.addEventListener("click", ()=>{
+        bs.value = btn.dataset.suggest;
+        onFieldChange("babyStep", btn.dataset.suggest);
+        updateBabyStepGuide(btn.dataset.suggest);
+      });
+    });
+    document.getElementById("btn-smaller").addEventListener("click", ()=>{
+      const shrink = "まずは「" + (bs.value || "始めること") + "」を30秒だけ試してみる";
+      bs.value = shrink;
+      onFieldChange("babyStep", shrink);
+      updateBabyStepGuide(shrink);
+    });
+    document.getElementById("planned-time").addEventListener("input",(e)=> onFieldChange("plannedTime", e.target.value));
+    document.getElementById("duration-input").addEventListener("input",(e)=> onFieldChange("duration", e.target.value));
+  }
+
+  else if(wizardState.step===4){
+    c.innerHTML = `
+      <h2>今日、一番集中して取り組むことは？</h2>
+      <div class="field"><label class="field-label" for="focus-task">集中するタスク</label>
+        <input type="text" id="focus-task" maxlength="60" value="${escapeHtml(f.focusTask)}"></div>
+      <div class="field"><label class="field-label" for="focus-start">開始予定時刻</label>
+        <input type="time" id="focus-start" value="${escapeHtml(f.startTime)}"></div>
+      <div class="field"><label class="field-label" for="focus-first">最初に行う具体的な行動</label>
+        <input type="text" id="focus-first" maxlength="80" value="${escapeHtml(f.firstAction)}"></div>
+      <div class="field"><label class="field-label" for="focus-obstacle">集中を妨げそうなもの</label>
+        <input type="text" id="focus-obstacle" maxlength="60" value="${escapeHtml(f.obstacle)}"></div>
+      <div class="field"><label class="field-label" for="focus-counter">妨げへの対策</label>
+        <input type="text" id="focus-counter" maxlength="80" value="${escapeHtml(f.countermeasure)}"></div>
+      <div class="card" style="background:var(--sky-teal-bg);border-color:transparent;">
+        <p class="small" style="color:var(--sky-teal);margin:0;">もう無理だと感じたときも、方法を小さく変えれば、もう一歩進める場合があります。ただし、体調や安全を最優先にしてください。</p>
+      </div>
+      <div class="field" style="margin-top:14px;">
+        <label style="display:flex;align-items:center;gap:8px;cursor:pointer;">
+          <input type="checkbox" id="declare-check" ${f.declared?"checked":""} style="width:20px;height:20px;">
+          <span>無理をせず、目の前の一歩に集中する</span>
+        </label>
+      </div>
+    `;
+    ["focus-task","focus-start","focus-first","focus-obstacle","focus-counter"].forEach(id=>{
+      const map = {"focus-task":"focusTask","focus-start":"startTime","focus-first":"firstAction","focus-obstacle":"obstacle","focus-counter":"countermeasure"};
+      document.getElementById(id).addEventListener("input",(e)=> onFieldChange(map[id], e.target.value));
+    });
+    document.getElementById("declare-check").addEventListener("change",(e)=> onFieldChange("declared", e.target.checked));
+  }
+}
+
+function renderConvertCandidates(skipRegenerate){
+  const f = wizardState.fields;
+  const wrap = document.getElementById("convert-candidates");
+  const pool = skipRegenerate && lastConvCandidates.length ? lastConvCandidates : (lastConvCandidates.length ? lastConvCandidates : generateReframeCandidates(f.anxietyText||"", null));
+  lastConvCandidates = pool;
+  wrap.innerHTML = `
+    <div class="field-label" style="margin-bottom:8px;">見方の候補（選ぶと下で編集できます）</div>
+    ${pool.map(c=>`<button type="button" class="candidate-btn" aria-pressed="${f.convertedSelected===c}" data-c="${escapeHtml(c)}">${escapeHtml(c)}</button>`).join("")}
+    <button class="btn btn-outline btn-sm" id="btn-other-candidate" style="margin-top:4px;">別の候補を表示</button>
+  `;
+  wrap.querySelectorAll(".candidate-btn").forEach(btn=>{
+    btn.addEventListener("click", ()=>{
+      f.convertedSelected = btn.dataset.c;
+      f.convertedText = btn.dataset.c;
+      f.convertedSkipped = false;
+      onFieldChange("convertedSelected", f.convertedSelected);
+      onFieldChange("convertedText", f.convertedText);
+      renderWizardStep();
+    });
+  });
+  document.getElementById("btn-other-candidate").addEventListener("click", ()=>{
+    const used = new Set(pool);
+    const more = generateReframeCandidates(f.anxietyText||"", used);
+    lastConvCandidates = more.length ? more : REFRAME_GENERIC;
+    renderConvertCandidates(true);
+  });
+}
+
+function updateBabyStepGuide(val){
+  const g = document.getElementById("babystep-guide");
+  if(!g) return;
+  if(val && val.length > 20){
+    g.innerHTML = `<p class="hint">もっと小さくできそうです。30秒から始められる形にしてみましょう。</p>`;
+  }else{
+    g.innerHTML = "";
+  }
+}
+
+document.getElementById("btn-wizard-home").addEventListener("click", ()=>{ commitWizardFieldsToDraft(); scheduleSave(); showScreen("home"); });
+document.getElementById("btn-wizard-menu").addEventListener("click", ()=>{
+  // 「修正を破棄する」は、既存の完成記録を修正中（修正前スナップショットあり）の場合のみ表示する。
+  const canDiscardEdit = !!(wizardState && wizardState.editingRecordId && wizardState.preEditSnapshot);
+  openModal(`
+    <h2>メニュー</h2>
+    <div class="stack">
+      <button class="btn btn-outline" id="menu-restart">最初からやり直す</button>
+      ${canDiscardEdit ? `<button class="btn btn-outline" id="menu-discard-edit">修正を破棄して元の記録に戻す</button>` : ""}
+      <button class="btn btn-outline" id="menu-close">閉じる</button>
+    </div>
+  `,{center:true});
+  document.getElementById("menu-restart").onclick = async ()=>{
+    closeModal();
+    const ok = await confirmDialog("最初からやり直しますか？","現在の入力内容は削除され、最初のステップからやり直します。","やり直す",{danger:true});
+    if(ok){
+      wizardState = { date: todayLocalStr(), step:1, fields:newWizardFields(), editingRecordId: wizardState.editingRecordId, createdAt: nowIso(), preEditSnapshot: wizardState.preEditSnapshot||null };
+      commitWizardFieldsToDraft(); scheduleSave();
+      renderWizardStep();
+    }
+  };
+  if(canDiscardEdit){
+    document.getElementById("menu-discard-edit").onclick = async ()=>{
+      closeModal();
+      const ok = await confirmDialog("修正を破棄しますか？","編集中の内容は削除され、保存済みの記録に戻します。","破棄する",{danger:true});
+      if(ok){ discardEditAndRestore(); }
+    };
+  }
+  document.getElementById("menu-close").onclick = closeModal;
+});
+
+// 修正を破棄し、修正開始前に保持していたスナップショットへ記録を戻す。
+// 編集用の一時データ（下書き）のみを削除し、保存済み記録そのものは
+// 修正完了（finishWizard）まで書き換えていないため、ここでの復元は安全に行える。
+function discardEditAndRestore(){
+  if(!wizardState || !wizardState.preEditSnapshot){ AppData.draft = null; wizardState = null; showScreen("home"); return; }
+  const snapshot = deepClone(wizardState.preEditSnapshot);
+  const idx = AppData.records.findIndex(r=>r.id===snapshot.id);
+  if(idx>=0){ AppData.records[idx] = snapshot; }
+  const recId = snapshot.id;
+  const recDate = snapshot.date;
+  AppData.draft = null;
+  wizardState = null;
+  recomputeAggregates();
+  saveNowImmediate();
+  showToast("修正を破棄し、元の記録に戻しました");
+  openRecordConfirm(recId, recDate===todayLocalStr() ? "today" : "history");
+}
+
+document.getElementById("btn-prev").addEventListener("click", ()=>{
+  // 前へボタンも、ハードウェア戻る操作と同じ経路（history.back）に統一する。
+  // 実際のステップの巻き戻しはpopstateハンドラ側で行う。
+  if(wizardState && wizardState.step>1){
+    commitWizardFieldsToDraft(); scheduleSave();
+    try{ history.back(); }catch(e){ wizardState.step--; renderWizardStep(); }
+  }
+});
+document.getElementById("btn-next").addEventListener("click", ()=>{
+  const f = wizardState.fields;
+  if(wizardState.step===1){
+    if(!f.mood || !f.promise){
+      showToast("気分の選択と「自分と約束する」のチェックをお願いします。無理のない範囲で大丈夫です。");
+      return;
+    }
+  }
+  if(wizardState.step<4){
+    wizardState.step++;
+    commitWizardFieldsToDraft(); scheduleSave();
+    try{ history.pushState({screen:"wizard", step:wizardState.step}, "", "#wizard-step"+wizardState.step); }catch(e){}
+    renderWizardStep();
+  }else{
+    finishWizard();
+  }
+});
+
+function finishWizard(){
+  const f = wizardState.fields;
+  const date = wizardState.date;
+  let rec = wizardState.editingRecordId ? AppData.records.find(r=>r.id===wizardState.editingRecordId) : null;
+  // editingRecordIdが無い場合でも、同じ日付の記録（削除済み含む）が既に存在すれば
+  // 新規作成せずそちらを更新することで、同日に複数の記録が重複作成されるのを防ぐ。
+  if(!rec){ rec = AppData.records.find(r=>r.date===date); }
+  const isNew = !rec;
+  // 既に完了済みだった記録を修正している場合は、完了画面を経由せず
+  // 保存後すぐに「内容確認」画面へ進む（修正フローとして扱う）。
+  const wasCompletedBefore = rec ? !!rec.completed : false;
+  if(!rec){ rec = { id: uid(), date: date, createdAt: nowIso() }; AppData.records.push(rec); }
+  rec.updatedAt = nowIso();
+  // 初回完了時のみ完了日時を新規に記録し、修正時は元の完了日時を保持する。
+  if(!rec.completedAt){ rec.completedAt = nowIso(); }
+  rec.completed = true;
+  rec.dataFormatVersion = DATA_FORMAT_VERSION;
+  rec.deleted = false;
+  rec.currentStep = 4;
+  rec.draftStatus = "complete";
+  rec.step1 = { mood:f.mood, promise:f.promise, promiseText:f.promiseText };
+  rec.step2 = AppData.settings.saveAnxiety
+    ? { anxietyText:f.anxietyText, convertedText:f.convertedText, convertedSelected:f.convertedSelected, skipped:f.convertedSkipped }
+    : { anxietyText:"", convertedText:f.convertedText, convertedSelected:f.convertedSelected, skipped:f.convertedSkipped };
+  rec.step3 = { action:f.action, babyStep:f.babyStep, plannedTime:f.plannedTime, duration:f.duration };
+  rec.step4 = { focusTask:f.focusTask, startTime:f.startTime, firstAction:f.firstAction, obstacle:f.obstacle, countermeasure:f.countermeasure, declared:f.declared };
+
+  const wasFirstToday = isNew;
+  AppData.draft = null;
+  recomputeAggregates();
+
+  if(wasFirstToday){ createBackupGeneration("1日の初回完了時の自動バックアップ"); }
+  saveNowImmediate();
+
+  if(AppData.settings.vibrationEnabled && navigator.vibrate){ try{ navigator.vibrate([30,40,30]); }catch(e){} }
+
+  const recId = rec.id;
+  const recDate = rec.date;
+  wizardState = null;
+
+  if(wasCompletedBefore){
+    showToast("修正内容を保存しました");
+    openRecordConfirm(recId, recDate===todayLocalStr() ? "today" : "history");
+    announce("記録を修正して保存しました");
+  }else{
+    renderCompleteScreen(rec);
+    showScreen("complete");
+    announce("今日のマインドセットが完了しました");
+  }
+}
+
+/* =========================================================
+   12. 完了画面
+========================================================= */
+function renderCompleteScreen(rec){
+  rec = sanitizeRecord(rec);
+  const d = rec.completedAt ? new Date(rec.completedAt) : new Date();
+  document.getElementById("complete-datetime").textContent = `${d.getFullYear()}/${pad2(d.getMonth()+1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+  const body = document.getElementById("complete-body");
+  body.innerHTML = `
+    <div class="card">
+      <p class="small" style="margin:0;">今日の記録を保存しました。内容の確認や、Obsidian用のコピー・共有は「今日の内容を確認」から行えます。</p>
+    </div>
+  `;
+}
+document.getElementById("btn-complete-confirm").addEventListener("click", ()=>{
+  const rec = findTodayRecord();
+  if(rec) openRecordConfirm(rec.id, "today");
+  else showScreen("home");
+});
+document.getElementById("btn-complete-home").addEventListener("click", ()=> showScreen("home"));
+
+/* =========================================================
+   12-B. 今日の内容確認 / 記録の詳細（読み取り専用の確認画面）
+   ・ここを開くだけでは記録・更新日時・ストリーク・バックアップ世代を変更しない。
+   ・source==="today" の場合はホームからの「今日の内容確認」、
+     source==="history" の場合は履歴からの「記録の詳細」として振る舞う。
+========================================================= */
+let confirmRecordId = null;
+let confirmSource = "history";
+
+function openRecordConfirm(id, source){
+  confirmRecordId = id;
+  confirmSource = source || "history";
+  renderRecordConfirm();
+  showScreen("detail");
+}
+
+function renderRecordConfirm(){
+  const rawRec = AppData.records.find(r=>r.id===confirmRecordId);
+  if(!rawRec){ showScreen(confirmSource==="today" ? "home" : "history"); return; }
+  // 表示用に複製を取り、確認画面の描画処理が誤って元データへ触れることを防ぐ。
+  const rec = sanitizeRecord(deepClone(rawRec));
+
+  document.getElementById("detail-title").textContent = confirmSource==="today" ? "今日の内容確認" : "記録の詳細";
+  const backBtn = document.getElementById("btn-detail-back");
+  backBtn.setAttribute("aria-label", confirmSource==="today" ? "ホームへ戻る" : "履歴へ戻る");
+
+  const completedAtStr = rec.completedAt ? new Date(rec.completedAt).toLocaleString("ja-JP") : "未完了";
+  const showAnxiety = AppData.settings.saveAnxiety && !!rec.step2.anxietyText;
+
+  const parts = [];
+  parts.push(`<div class="section-title">日付</div><p>${rec.date}</p>`);
+  parts.push(`<div class="section-title">アプリ名</div><p>${APP_NAME}</p>`);
+  parts.push(`<div class="section-title">完了日時</div><p>${completedAtStr}</p>`);
+  parts.push(`<div class="divider"></div>`);
+  parts.push(`<div class="section-title">今日選んだ気分</div><p>${escapeHtml(rec.step1.mood)||"未入力"}</p>`);
+  parts.push(`<div class="section-title">ご機嫌を守るための約束</div><p>${escapeHtml(rec.step1.promiseText)||"未入力"}</p>`);
+  if(showAnxiety){ parts.push(`<div class="section-title">不安や心配事</div><p>${escapeHtml(rec.step2.anxietyText)}</p>`); }
+  if(rec.step2.convertedText){ parts.push(`<div class="section-title">見方を変えた言葉</div><p>${escapeHtml(rec.step2.convertedText)}</p>`); }
+  parts.push(`<div class="section-title">今日やりたい行動</div><p>${escapeHtml(rec.step3.action)||"未入力"}</p>`);
+  parts.push(`<div class="section-title">最初の小さな一歩</div><p>${escapeHtml(rec.step3.babyStep)||"未入力"}</p>`);
+  if(rec.step3.plannedTime){ parts.push(`<div class="section-title">実行予定時間</div><p>${escapeHtml(rec.step3.plannedTime)}</p>`); }
+  if(rec.step3.duration){ parts.push(`<div class="section-title">所要時間</div><p>${escapeHtml(rec.step3.duration)}</p>`); }
+  parts.push(`<div class="section-title">集中するタスク</div><p>${escapeHtml(rec.step4.focusTask)||"未入力"}</p>`);
+  if(rec.step4.startTime){ parts.push(`<div class="section-title">開始予定時刻</div><p>${escapeHtml(rec.step4.startTime)}</p>`); }
+  parts.push(`<div class="section-title">最初に行う具体的な行動</div><p>${escapeHtml(rec.step4.firstAction)||"未入力"}</p>`);
+  if(rec.step4.obstacle){ parts.push(`<div class="section-title">集中を妨げそうなもの</div><p>${escapeHtml(rec.step4.obstacle)}</p>`); }
+  if(rec.step4.countermeasure){ parts.push(`<div class="section-title">妨げへの対策</div><p>${escapeHtml(rec.step4.countermeasure)}</p>`); }
+  if(rec.step4.declared){ parts.push(`<div class="section-title">集中宣言</div><p>無理をせず、目の前の一歩に集中する</p>`); }
+
+  document.getElementById("detail-body").innerHTML = `<div class="card">${parts.join("")}</div>`;
+  renderDetailActions(rec, confirmSource);
+}
+
+function renderDetailActions(rec, source){
+  const wrap = document.getElementById("detail-actions");
+  const editLabel = source==="today" ? "今日の内容を修正" : "この記録を修正";
+  let html = `
+    <button class="btn btn-outline" id="btn-detail-copy">Obsidian用にコピー</button>
+    <button class="btn btn-outline" id="btn-detail-share">共有</button>
+    <button class="btn btn-secondary" id="btn-detail-edit-dyn">${editLabel}</button>
+  `;
+  if(source==="history"){
+    html += `
+      <button class="btn btn-outline" id="btn-detail-duplicate-dyn">この記録を複製</button>
+      <button class="btn btn-danger" id="btn-detail-delete-dyn">ゴミ箱へ移動</button>
+      <button class="btn btn-text" id="btn-detail-tohistory">履歴へ戻る</button>
+    `;
+  }else{
+    html += `<button class="btn btn-text" id="btn-detail-tohome">ホームへ戻る</button>`;
+  }
+  wrap.innerHTML = html;
+
+  document.getElementById("btn-detail-copy").addEventListener("click", ()=> openObsidianCopyFlow(rec, "copy"));
+  document.getElementById("btn-detail-share").addEventListener("click", ()=> openObsidianCopyFlow(rec, "share"));
+  document.getElementById("btn-detail-edit-dyn").addEventListener("click", ()=> beginEditRecord(rec));
+  if(source==="history"){
+    document.getElementById("btn-detail-duplicate-dyn").addEventListener("click", ()=> duplicateRecord(rec));
+    document.getElementById("btn-detail-delete-dyn").addEventListener("click", ()=> deleteRecordToTrash(rec));
+    document.getElementById("btn-detail-tohistory").addEventListener("click", ()=> showScreen("history"));
+  }else{
+    document.getElementById("btn-detail-tohome").addEventListener("click", ()=> showScreen("home"));
+  }
+}
+
+document.getElementById("btn-detail-back").addEventListener("click", ()=>{
+  showScreen(confirmSource==="today" ? "home" : "history");
+});
+
+function duplicateRecord(rec){
+  const copy = deepClone(rec);
+  copy.id = uid();
+  copy.date = todayLocalStr();
+  copy.createdAt = nowIso(); copy.updatedAt = nowIso(); copy.completedAt = null; copy.completed = false;
+  const existingToday = findTodayRecord();
+  if(existingToday){ showToast("今日はすでに記録があります。複製は下書きとして保存されます。"); }
+  AppData.records.push(copy);
+  recomputeAggregates();
+  saveNowImmediate();
+  showToast("記録を複製しました");
+  openRecordConfirm(copy.id, "history");
+}
+
+function deleteRecordToTrash(rec){
+  confirmDialog("この記録をゴミ箱へ移動しますか？","ゴミ箱からはいつでも復元できます。","ゴミ箱へ移動").then(ok=>{
+    if(!ok) return;
+    const r = AppData.records.find(x=>x.id===rec.id);
+    if(!r) return;
+    r.deleted = true; r.deletedAt = nowIso();
+    recomputeAggregates();
+    saveNowImmediate();
+    showScreen("history");
+    showToast("ゴミ箱へ移動しました", "元に戻す", ()=>{
+      r.deleted = false; r.deletedAt = null; recomputeAggregates(); saveNowImmediate(); renderHistory();
+    }, 8000);
+  });
+}
+
+/* =========================================================
+   12-C. Obsidian用Markdownコピー / 共有
+   ・先頭は必ず「# YYYY-MM-DD MindSwitch」（対象記録の日付。端末の現在日付ではない）。
+   ・不安・心配事は初期状態では含めない。含める場合のみ確認のうえ含める。
+   ・Clipboard APIが使えない場合は手動コピー用のモーダルを表示する。
+========================================================= */
+function buildObsidianMarkdown(rec, opts){
+  opts = opts || {};
+  const includeAnxiety = !!opts.includeAnxiety;
+  rec = sanitizeRecord(rec);
+  const lines = [`# ${rec.date} ${APP_NAME}`];
+  function addSection(title, value){
+    if(value===undefined || value===null) return;
+    value = String(value).trim();
+    if(!value) return;
+    lines.push("");
+    lines.push(`## ${title}`);
+    lines.push(value);
+  }
+  addSection("今日の気分", rec.step1.mood);
+  addSection("ご機嫌を守るための約束", rec.step1.promiseText);
+  if(includeAnxiety && AppData.settings.saveAnxiety){ addSection("不安・心配事", rec.step2.anxietyText); }
+  addSection("見方を変えた言葉", rec.step2.convertedText);
+  addSection("今日やりたいこと", rec.step3.action);
+  addSection("最初の小さな一歩", rec.step3.babyStep);
+  addSection("実行予定", rec.step3.plannedTime);
+  addSection("所要時間", rec.step3.duration);
+  addSection("今日集中すること", rec.step4.focusTask);
+  addSection("開始予定時刻", rec.step4.startTime);
+  addSection("最初に行う具体的な行動", rec.step4.firstAction);
+  addSection("集中を妨げそうなもの", rec.step4.obstacle);
+  addSection("妨げへの対策", rec.step4.countermeasure);
+  if(rec.step4.declared){ addSection("今日の宣言", "無理をせず、目の前の一歩に集中する"); }
+  return lines.join("\n").trim() + "\n";
+}
+
+function openObsidianCopyFlow(rec, mode){
+  rec = sanitizeRecord(rec);
+  const hasAnxiety = AppData.settings.saveAnxiety && !!(rec.step2 && rec.step2.anxietyText && rec.step2.anxietyText.trim());
+  if(hasAnxiety){
+    openModal(`
+      <h2>不安・心配事を含めますか？</h2>
+      <p class="small">不安や心配ごとは個人的な内容を含む可能性があります。含めない場合でも、日付・アプリ名や前向きな言葉はコピー・共有されます。</p>
+      <div class="stack">
+        <button class="btn btn-secondary" id="anx-exclude">含めない（推奨）</button>
+        <button class="btn btn-outline" id="anx-include">含める</button>
+      </div>
+    `, {center:true});
+    document.getElementById("anx-exclude").onclick = ()=>{ closeModal(); finalizeObsidianAction(rec, mode, false); };
+    document.getElementById("anx-include").onclick = ()=>{ closeModal(); finalizeObsidianAction(rec, mode, true); };
+  }else{
+    finalizeObsidianAction(rec, mode, false);
+  }
+}
+
+function finalizeObsidianAction(rec, mode, includeAnxiety){
+  const md = buildObsidianMarkdown(rec, {includeAnxiety});
+  if(mode==="share"){
+    if(navigator.share){
+      navigator.share({text: md, title: APP_NAME}).catch(()=>{ /* キャンセルも含む。何もしない */ });
+    }else{
+      copyMarkdownToClipboard(md);
+    }
+  }else{
+    copyMarkdownToClipboard(md);
+  }
+}
+
+function copyMarkdownToClipboard(md){
+  if(navigator.clipboard && navigator.clipboard.writeText){
+    navigator.clipboard.writeText(md)
+      .then(()=> showToast("Obsidian用の記録をコピーしました"))
+      .catch(()=> manualCopyFallback(md));
+  }else{
+    manualCopyFallback(md);
+  }
+}
+
+function manualCopyFallback(md){
+  try{
+    const ta = document.createElement("textarea");
+    ta.value = md; ta.style.position="fixed"; ta.style.opacity="0";
+    document.body.appendChild(ta); ta.focus(); ta.select();
+    const ok = document.execCommand("copy");
+    document.body.removeChild(ta);
+    if(ok){ showToast("Obsidian用の記録をコピーしました"); return; }
+  }catch(e){ /* 以降のモーダル表示にフォールバック */ }
+  showManualCopyModal(md);
+}
+
+function showManualCopyModal(md){
+  openModal(`
+    <h2>コピーできませんでした</h2>
+    <p class="small">コピーできませんでした。文章を表示するので、長押ししてコピーしてください</p>
+    <textarea id="manual-copy-text" readonly style="min-height:220px;">${escapeHtml(md)}</textarea>
+    <button class="btn btn-primary" id="manual-copy-close" style="margin-top:12px;">閉じる</button>
+  `, {center:true});
+  const ta = document.getElementById("manual-copy-text");
+  if(ta){ ta.focus(); ta.select(); }
+  document.getElementById("manual-copy-close").onclick = closeModal;
+}
+
+/* =========================================================
+   13. 履歴画面
+========================================================= */
+let historyFilterMood = null;
+let historyShowCalendar = false;
+function renderHistory(){
+  const moods = ["ワクワク","穏やか","パワフル","前向き","集中","自然体"];
+  const filterWrap = document.getElementById("history-mood-filter");
+  filterWrap.innerHTML = `<button data-m="" aria-pressed="${!historyFilterMood}">すべて</button>` +
+    moods.map(m=>`<button data-m="${m}" aria-pressed="${historyFilterMood===m}">${m}</button>`).join("");
+  filterWrap.querySelectorAll("button").forEach(b=>{
+    b.addEventListener("click", ()=>{ historyFilterMood = b.dataset.m || null; renderHistory(); });
+  });
+
+  document.getElementById("history-calendar-wrap").style.display = historyShowCalendar ? "block":"none";
+  if(historyShowCalendar) renderHistoryCalendar();
+
+  const search = document.getElementById("history-search").value.trim().toLowerCase();
+  // 表示前に全件を正規化し、欠損したstep1〜4によるクラッシュを防ぐ
+  let list = getActiveRecords().map(sanitizeRecord).sort((a,b)=> b.date.localeCompare(a.date));
+  if(historyFilterMood) list = list.filter(r=> r.step1?.mood===historyFilterMood);
+  if(search){
+    list = list.filter(r=>{
+      const hay = [r.step4?.focusTask, r.step3?.action, r.step3?.babyStep, r.step1?.promiseText].filter(Boolean).join(" ").toLowerCase();
+      return hay.includes(search);
+    });
+  }
+  const listEl = document.getElementById("history-list");
+  if(!list.length){
+    listEl.innerHTML = `<div class="empty-state">まだ記録がありません。今日のマインドセットから始めてみましょう。</div>`;
+    return;
+  }
+  listEl.innerHTML = list.map(r=>`
+    <button class="history-item" data-id="${r.id}">
+      <span>
+        <strong>${r.date}</strong><br>
+        <span class="meta">${escapeHtml(r.step1?.mood||"")} ${r.step4?.focusTask? "・"+escapeHtml(r.step4.focusTask):""}</span>
+      </span>
+      <span class="badge ${r.completed? "badge-done":"badge-draft"}">${r.completed? "完了":"下書き"}</span>
+    </button>
+  `).join("");
+  listEl.querySelectorAll(".history-item").forEach(btn=>{
+    btn.addEventListener("click", ()=> openDetail(btn.dataset.id));
+  });
+}
+function renderHistoryCalendar(){
+  const wrap = document.getElementById("history-calendar-wrap");
+  const now = new Date();
+  const y = now.getFullYear(), m = now.getMonth();
+  const doneDates = new Set(getActiveRecords().filter(r=>r.completed).map(r=>r.date));
+  const weekStart = AppData.settings.weekStart || 0;
+  const dowLabels = weekStart===1 ? ["月","火","水","木","金","土","日"] : ["日","月","火","水","木","金","土"];
+  const firstDay = new Date(y,m,1);
+  let startOffset = (firstDay.getDay() - weekStart + 7) % 7;
+  const daysInMonth = new Date(y,m+1,0).getDate();
+  let cells = "";
+  for(let i=0;i<startOffset;i++) cells += `<div class="cell"></div>`;
+  for(let d=1; d<=daysInMonth; d++){
+    const dateStr = `${y}-${pad2(m+1)}-${pad2(d)}`;
+    const done = doneDates.has(dateStr);
+    const isToday = dateStr === todayLocalStr();
+    cells += `<div class="cell ${done?"done":""} ${isToday?"today":""}">${d}</div>`;
+  }
+  wrap.innerHTML = `<div class="section-title">${y}年${m+1}月</div><div class="cal-grid">${dowLabels.map(l=>`<div class="dow">${l}</div>`).join("")}${cells}</div>`;
+}
+document.getElementById("history-search").addEventListener("input", renderHistory);
+document.getElementById("btn-history-back").addEventListener("click", ()=> showScreen("home"));
+document.getElementById("btn-history-calendar").addEventListener("click", ()=>{ historyShowCalendar = !historyShowCalendar; renderHistory(); });
+document.getElementById("btn-open-trash").addEventListener("click", ()=> showScreen("trash"));
+
+/* =========================================================
+   14. 詳細画面（履歴からは読み取り専用の確認画面として開く）
+========================================================= */
+function openDetail(id){
+  openRecordConfirm(id, "history");
+}
+
+/* =========================================================
+   15. ゴミ箱
+========================================================= */
+function renderTrash(){
+  const list = AppData.records.filter(r=>r.deleted).map(sanitizeRecord).sort((a,b)=> new Date(b.deletedAt)-new Date(a.deletedAt));
+  const el = document.getElementById("trash-list");
+  if(!list.length){ el.innerHTML = `<div class="empty-state">ゴミ箱は空です。</div>`; return; }
+  el.innerHTML = list.map(r=>`
+    <div class="history-item" style="cursor:default;">
+      <span><strong>${r.date}</strong><br><span class="meta">${escapeHtml(r.step1?.mood||"")}</span></span>
+      <span class="btn-row" style="width:auto;">
+        <button class="btn btn-outline btn-sm" data-restore="${r.id}">復元</button>
+        <button class="btn btn-danger btn-sm" data-purge="${r.id}">完全削除</button>
+      </span>
+    </div>
+  `).join("");
+  el.querySelectorAll("[data-restore]").forEach(b=>{
+    b.addEventListener("click", ()=>{
+      const rec = AppData.records.find(r=>r.id===b.dataset.restore);
+      rec.deleted = false; rec.deletedAt = null;
+      recomputeAggregates(); saveNowImmediate(); renderTrash();
+      showToast("復元しました");
+    });
+  });
+  el.querySelectorAll("[data-purge]").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      const ok = await confirmDialog("この操作は元に戻せません。完全に削除しますか？","記録は完全に削除され、復元できなくなります。","完全に削除する",{danger:true});
+      if(!ok) return;
+      AppData.records = AppData.records.filter(r=>r.id!==b.dataset.purge);
+      saveNowImmediate(); renderTrash();
+      showToast("完全に削除しました");
+    });
+  });
+}
+document.getElementById("btn-trash-back").addEventListener("click", ()=> showScreen("history"));
+
+/* =========================================================
+   16. 設定画面
+========================================================= */
+function renderSettings(){
+  const s = AppData.settings;
+  document.getElementById("set-nickname").value = s.nickname || "";
+  setPillGroup("set-theme", s.theme);
+  setPillGroup("set-fontsize", s.fontSize);
+  setPillGroup("set-weekstart", String(s.weekStart));
+  document.getElementById("set-notif-enabled").checked = !!s.notifEnabled;
+  document.getElementById("set-notif-time").value = s.notifTime || "07:00";
+  document.getElementById("set-save-anxiety").checked = !!s.saveAnxiety;
+  document.getElementById("set-sound").checked = !!s.soundEnabled;
+  document.getElementById("set-vibration").checked = !!s.vibrationEnabled;
+
+  const noteEl = document.getElementById("notif-support-note");
+  if(!("Notification" in window)){
+    noteEl.innerHTML = "この端末・ブラウザは通知に対応していません。時間になったらお知らせしたい場合は、スマートフォン標準のアラーム機能をご利用ください。";
+  }else{
+    noteEl.innerHTML = "<strong>ご注意：</strong>この通知は、アプリを開いている（起動中の）間だけ働く仕組みです。<strong>アプリを完全に閉じている間は通知が届きません。</strong>確実に起きたい時刻がある場合は、必ずスマートフォン標準のアラーム機能も合わせてご利用ください。";
+  }
+
+  renderDataProtectionCard();
+}
+function setPillGroup(id, value){
+  document.querySelectorAll("#"+id+" button").forEach(b=> b.setAttribute("aria-pressed", b.dataset.v===String(value)));
+}
+document.querySelectorAll("#set-theme button").forEach(b=> b.addEventListener("click", ()=>{ AppData.settings.theme=b.dataset.v; applyTheme(); setPillGroup("set-theme",b.dataset.v); scheduleSave(); }));
+document.querySelectorAll("#set-fontsize button").forEach(b=> b.addEventListener("click", ()=>{ AppData.settings.fontSize=b.dataset.v; applyFontSize(); setPillGroup("set-fontsize",b.dataset.v); scheduleSave(); }));
+document.querySelectorAll("#set-weekstart button").forEach(b=> b.addEventListener("click", ()=>{ AppData.settings.weekStart=Number(b.dataset.v); setPillGroup("set-weekstart",b.dataset.v); scheduleSave(); }));
+document.getElementById("set-nickname").addEventListener("input",(e)=>{ AppData.settings.nickname=e.target.value; scheduleSave(); });
+document.getElementById("set-notif-enabled").addEventListener("change", async (e)=>{
+  AppData.settings.notifEnabled = e.target.checked;
+  if(e.target.checked){ await requestNotifPermissionIfNeeded(); setupNotifTimer(); }
+  else{ clearNotifTimer(); }
+  scheduleSave();
+});
+document.getElementById("set-notif-time").addEventListener("change",(e)=>{ AppData.settings.notifTime=e.target.value; setupNotifTimer(); scheduleSave(); });
+document.getElementById("set-save-anxiety").addEventListener("change",(e)=>{ AppData.settings.saveAnxiety=e.target.checked; scheduleSave(); });
+document.getElementById("set-sound").addEventListener("change",(e)=>{ AppData.settings.soundEnabled=e.target.checked; scheduleSave(); });
+document.getElementById("set-vibration").addEventListener("change",(e)=>{ AppData.settings.vibrationEnabled=e.target.checked; scheduleSave(); });
+document.getElementById("btn-settings-back").addEventListener("click", ()=> showScreen("home"));
+
+function applyTheme(){
+  const t = AppData.settings.theme;
+  let effective = t;
+  if(t==="system"){ effective = (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches) ? "dark":"light"; }
+  document.documentElement.setAttribute("data-theme", effective==="dark" ? "dark":"light");
+}
+function applyFontSize(){
+  const map = {small:0.9, standard:1, large:1.15, xlarge:1.35};
+  document.documentElement.style.setProperty("--font-scale", map[AppData.settings.fontSize]||1);
+}
+if(window.matchMedia){
+  window.matchMedia("(prefers-color-scheme: dark)").addEventListener?.("change", ()=>{ if(AppData.settings && AppData.settings.theme==="system") applyTheme(); });
+}
+
+/* ---- データ保護カード ---- */
+async function renderDataProtectionCard(){
+  const card = document.getElementById("data-protection-card");
+  const idbOk = Storage.idbAvailable;
+  const lsOk = Storage.lsAvailable;
+  let persisted = "確認できません";
+  try{
+    if(navigator.storage && navigator.storage.persisted){ persisted = (await navigator.storage.persisted()) ? "許可されています" : "未許可"; }
+  }catch(e){}
+  let usage = "不明";
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const est = await navigator.storage.estimate();
+      if(est.usage!=null && est.quota!=null){ usage = `${(est.usage/1024).toFixed(0)}KB / ${(est.quota/1024/1024).toFixed(0)}MB`; }
+    }
+  }catch(e){}
+  const lastSaved = AppData.updatedAt ? new Date(AppData.updatedAt).toLocaleString("ja-JP") : "-";
+  const lastBackup = AppData.meta.lastBackupAt ? new Date(AppData.meta.lastBackupAt).toLocaleString("ja-JP") : "まだありません";
+
+  card.innerHTML = `
+    <p class="small">この端末に、二重の方法でデータを保存しています。片方が使えない・壊れている場合でも、もう片方から復旧を試みます。</p>
+    <div class="settings-row"><span>保存方式A（IndexedDB）</span><span>${idbOk? "利用可能":"利用不可"}</span></div>
+    <div class="settings-row"><span>保存方式B（localStorage）</span><span>${lsOk? "利用可能":"利用不可"}</span></div>
+    <div class="settings-row"><span>最終保存日時</span><span>${lastSaved}</span></div>
+    <div class="settings-row"><span>最終バックアップ</span><span>${lastBackup}</span></div>
+    <div class="settings-row"><span>保存されている記録数</span><span>${AppData.records.filter(r=>!r.deleted).length}件</span></div>
+    <div class="settings-row"><span>バックアップ世代数</span><span>${AppData.backups.length} / ${MAX_BACKUP_GENERATIONS}</span></div>
+    <div class="settings-row"><span>永続ストレージ</span><span>${persisted}</span></div>
+    <div class="settings-row"><span>ストレージ使用量</span><span>${usage}</span></div>
+    <p class="small" style="margin-top:8px;">「絶対にデータが消えない」ことは技術的に保証できません。大切な記録は、時々エクスポートして端末外にも保管することをおすすめします。</p>
+  `;
+}
+
+document.getElementById("btn-save-now").addEventListener("click", async ()=>{ await saveNowImmediate(); showToast("保存しました"); });
+document.getElementById("btn-backup-now").addEventListener("click", async ()=>{ createBackupGeneration("手動バックアップ"); await saveNowImmediate(); renderDataProtectionCard(); showToast("バックアップを作成しました"); });
+document.getElementById("btn-export").addEventListener("click", exportJson);
+document.getElementById("btn-import").addEventListener("click", ()=> document.getElementById("file-import").click());
+document.getElementById("file-import").addEventListener("change", (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ()=>{
+    let obj;
+    try{ obj = JSON.parse(reader.result); }
+    catch(err){ showToast("ファイルの読み込みに失敗しました。壊れているか、JSON形式ではない可能性があります。"); e.target.value=""; return; }
+    const errors = validateImportFile(obj);
+    if(errors.length){ showToast(errors[0]); e.target.value=""; return; }
+    openModal(`
+      <h2>読み込み方法を選択</h2>
+      <p class="small">「${escapeHtml(file.name)}」を読み込みます。既存データはインポート前に自動でバックアップされます。</p>
+      <div class="stack">
+        <button class="btn btn-outline" id="import-merge">追加・統合する（推奨）</button>
+        <button class="btn btn-danger" id="import-overwrite">上書きする</button>
+        <button class="btn btn-text" id="import-cancel">キャンセル</button>
+      </div>
+    `,{center:true});
+    document.getElementById("import-cancel").onclick = ()=>{ closeModal(); e.target.value=""; };
+    const doImport = (mode)=>{
+      closeModal();
+      const result = importJsonObject(obj, mode);
+      e.target.value = "";
+      if(result.ok){
+        renderSettings();
+        showToast(`追加:${result.added} 更新:${result.updated} 無視:${result.ignored} エラー:${result.errorCount}`);
+      }else{
+        showToast(result.errors[0]);
+      }
+    };
+    document.getElementById("import-merge").onclick = ()=> doImport("merge");
+    document.getElementById("import-overwrite").onclick = ()=> doImport("overwrite");
+  };
+  reader.onerror = ()=> showToast("ファイルの読み込み中にエラーが発生しました。");
+  reader.readAsText(file);
+});
+
+document.getElementById("btn-backup-list").addEventListener("click", ()=>{
+  const list = AppData.backups.slice().sort((a,b)=> new Date(b.createdAt)-new Date(a.createdAt));
+  openModal(`
+    <h2>バックアップ一覧</h2>
+    ${list.length? "" : `<p class="small">バックアップはまだありません。</p>`}
+    <div class="stack">
+      ${list.map(bk=>`
+        <div class="card" style="margin-bottom:0;">
+          <div style="font-weight:700;">${new Date(bk.createdAt).toLocaleString("ja-JP")}</div>
+          <div class="small">${escapeHtml(bk.label)} ・ 記録${bk.recordCount}件</div>
+          <button class="btn btn-outline btn-sm" style="margin-top:8px;" data-restore-bk="${bk.id}">この時点へ復元</button>
+        </div>
+      `).join("")}
+    </div>
+    <button class="btn btn-text" id="bk-close" style="margin-top:10px;">閉じる</button>
+  `,{center:true});
+  document.getElementById("bk-close").onclick = closeModal;
+  document.querySelectorAll("[data-restore-bk]").forEach(b=>{
+    b.addEventListener("click", async ()=>{
+      const bk = AppData.backups.find(x=>x.id===b.dataset.restoreBk);
+      closeModal();
+      const ok = await confirmDialog(
+        "このバックアップへ復元しますか？",
+        `${new Date(bk.createdAt).toLocaleString("ja-JP")} 時点（記録${bk.recordCount}件）に復元します。現在のデータは復元前に自動でバックアップされます。`,
+        "復元する", {danger:true}
+      );
+      if(!ok) return;
+      createBackupGeneration("復元前の自動バックアップ");
+      const restored = deepClone(bk.snapshot);
+      const keepBackups = AppData.backups;
+      AppData = migrateIfNeeded(restored);
+      AppData.backups = keepBackups;
+      recomputeAggregates();
+      await saveNowImmediate();
+      renderSettings();
+      showToast("復元しました");
+    });
+  });
+});
+
+document.getElementById("btn-integrity").addEventListener("click", async ()=>{
+  const idbData = Storage.idbAvailable ? await Storage.idbGet("appData").catch(()=>undefined) : undefined;
+  const lsData = Storage.lsAvailable ? Storage.lsGet(LS_KEY) : undefined;
+  const idbValid = idbData ? verifyChecksum(idbData) : null;
+  const lsValid = lsData ? verifyChecksum(lsData) : null;
+  const recordIssues = AppData.records.filter(r=> !r.date || !r.id).length;
+  openModal(`
+    <h2>データ整合性の確認結果</h2>
+    <div class="stack">
+      <div class="card" style="margin-bottom:0;">
+        <div class="settings-row"><span>IndexedDB</span><span>${idbValid===null?"データなし":idbValid?"正常":"異常の可能性"}</span></div>
+        <div class="settings-row"><span>localStorage</span><span>${lsValid===null?"データなし":lsValid?"正常":"異常の可能性"}</span></div>
+        <div class="settings-row"><span>不完全な記録</span><span>${recordIssues}件</span></div>
+      </div>
+    </div>
+    <button class="btn btn-primary" id="integrity-close" style="margin-top:12px;">閉じる</button>
+  `,{center:true});
+  document.getElementById("integrity-close").onclick = closeModal;
+});
+
+document.getElementById("btn-repair").addEventListener("click", async ()=>{
+  const ok = await confirmDialog("データを修復しますか？","修復前に自動でバックアップを作成します。日付やIDが欠けている記録を安全な形に補正します。","修復する");
+  if(!ok) return;
+  createBackupGeneration("修復前の自動バックアップ");
+  let fixed = 0;
+  AppData.records.forEach(r=>{
+    if(!r.id){ r.id = uid(); fixed++; }
+    if(!r.date){ r.date = todayLocalStr(); fixed++; }
+    if(!r.step1) r.step1 = {mood:"",promise:false,promiseText:""};
+    if(!r.step2) r.step2 = {anxietyText:"",convertedText:"",convertedSelected:"",skipped:false};
+    if(!r.step3) r.step3 = {action:"",babyStep:"",plannedTime:"",duration:""};
+    if(!r.step4) r.step4 = {focusTask:"",startTime:"",firstAction:"",obstacle:"",countermeasure:""};
+  });
+  const beforeDup = AppData.records.length;
+  const seen = new Map();
+  AppData.records = AppData.records.filter(r=>{
+    if(!r.completed) return true;
+    const key = r.date;
+    if(seen.has(key)){
+      const other = seen.get(key);
+      return new Date(r.updatedAt||0) >= new Date(other.updatedAt||0) ? true : false;
+    }
+    seen.set(key, r);
+    return true;
+  });
+  recomputeAggregates();
+  await saveNowImmediate();
+  renderSettings();
+  showToast(`修復が完了しました（補正 ${fixed}件 / 重複整理 ${beforeDup-AppData.records.length}件）`);
+});
+
+document.getElementById("btn-persist-storage").addEventListener("click", async ()=>{
+  if(!(navigator.storage && navigator.storage.persist)){ showToast("この端末では永続ストレージの要求に対応していません。"); return; }
+  try{
+    const granted = await navigator.storage.persist();
+    showToast(granted ? "永続ストレージが許可されました" : "許可されませんでした（端末やブラウザの設定によります）");
+    renderDataProtectionCard();
+  }catch(e){ showToast("要求中にエラーが発生しました。"); }
+});
+
+document.getElementById("btn-privacy-info").addEventListener("click", ()=>{
+  openModal(`
+    <h2>プライバシーについて</h2>
+    <p class="small">MindSwitchの入力内容は、原則としてこの端末の中だけに保存され、外部のサーバーには送信されません。<br><br>
+    不安・心配ごとの入力は、設定でオフにすると履歴に保存されず、その場での見方の変換にのみ使われます。<br><br>
+    ブラウザのデータ（キャッシュ・サイトデータ）を削除すると、記録も失われる可能性があります。大切な記録は時々JSONで書き出して保管することをおすすめします。</p>
+    <button class="btn btn-primary" id="privacy-close" style="margin-top:12px;">閉じる</button>
+  `,{center:true});
+  document.getElementById("privacy-close").onclick = closeModal;
+});
+document.getElementById("btn-app-info").addEventListener("click", ()=>{
+  openModal(`
+    <h2>アプリ情報</h2>
+    <p class="small">${APP_NAME}<br>バージョン ${APP_VERSION}<br>データ形式バージョン ${DATA_FORMAT_VERSION}</p>
+    <button class="btn btn-primary" id="info-close" style="margin-top:12px;">閉じる</button>
+  `,{center:true});
+  document.getElementById("info-close").onclick = closeModal;
+});
+document.getElementById("btn-reset-all").addEventListener("click", async ()=>{
+  const ok = await confirmDialog(
+    "すべてのデータを初期化しますか？",
+    "この操作の前に緊急バックアップを作成します。初期化後もしばらくの間は一時的に元に戻せます。",
+    "初期化する",
+    {danger:true, requireText:"初期化"}
+  );
+  if(!ok) return;
+  createBackupGeneration("初期化前の緊急バックアップ");
+  const emergencySnapshot = withChecksum(deepClone(AppData));
+  try{ Storage.lsSet("mindswitch_emergency_restore", {createdAt: nowIso(), snapshot: emergencySnapshot}); }catch(e){}
+  const keepBackups = [emergencySnapshot].length ? AppData.backups.slice(-1) : [];
+  AppData = emptyAppData();
+  AppData.backups = keepBackups;
+  recomputeAggregates();
+  await saveNowImmediate();
+  applyTheme(); applyFontSize();
+  showScreen("home");
+  showToast("初期化しました", "元に戻す", async ()=>{
+    const emerg = Storage.lsGet("mindswitch_emergency_restore");
+    if(emerg && emerg.snapshot){
+      AppData = migrateIfNeeded(deepClone(emerg.snapshot));
+      recomputeAggregates();
+      await saveNowImmediate();
+      applyTheme(); applyFontSize();
+      showScreen("home");
+      showToast("元に戻しました");
+    }
+  }, 15000);
+});
+
+/* =========================================================
+   17. 通知
+========================================================= */
+async function requestNotifPermissionIfNeeded(){
+  if(!("Notification" in window)) return "unsupported";
+  if(Notification.permission === "granted") return "granted";
+  if(Notification.permission === "denied") return "denied";
+  try{ return await Notification.requestPermission(); }catch(e){ return "denied"; }
+}
+function setupNotifTimer(){
+  clearNotifTimer();
+  if(!AppData.settings.notifEnabled) return;
+  notifTimerHandle = setInterval(()=>{
+    const now = new Date();
+    const hhmm = pad2(now.getHours())+":"+pad2(now.getMinutes());
+    if(hhmm === AppData.settings.notifTime){
+      const todayRec = findTodayRecord();
+      if(!todayRec || !todayRec.completed){ fireNotification(); }
+    }
+  }, 20000);
+}
+function clearNotifTimer(){ if(notifTimerHandle){ clearInterval(notifTimerHandle); notifTimerHandle=null; } }
+function fireNotification(){
+  if("Notification" in window && Notification.permission==="granted"){
+    try{ new Notification("MindSwitch", {body:"マインドをセットする時間だよ", tag:"mindswitch-daily"}); }catch(e){}
+  }else{
+    showToast("マインドをセットする時間だよ");
+  }
+  if(AppData.settings.vibrationEnabled && navigator.vibrate){ try{ navigator.vibrate(200); }catch(e){} }
+}
+document.getElementById("btn-notif-test").addEventListener("click", async ()=>{
+  const perm = await requestNotifPermissionIfNeeded();
+  if(perm==="unsupported"){ showToast("この端末は通知に対応していません。"); return; }
+  if(perm==="denied"){ showToast("通知が許可されていません。端末の設定から許可してください。"); return; }
+  fireNotification();
+});
+
+/* =========================================================
+   18. ストレージ容量不足の検知
+========================================================= */
+async function checkStorageQuota(){
+  try{
+    if(navigator.storage && navigator.storage.estimate){
+      const est = await navigator.storage.estimate();
+      if(est.quota && est.usage && (est.usage/est.quota) > 0.9){
+        showToast("端末の保存容量が少なくなっています。設定からエクスポートやバックアップの整理をご検討ください。");
+      }
+    }
+  }catch(e){}
+}
+
+/* =========================================================
+   18-B. PWA化（マニフェスト注入）
+   ※ Service Workerは単一HTML制約上、仕様上有効な形で登録できない
+     （blob:/data: スキームのスクリプトはService Workerとして登録不可のため）。
+     そのためオフラインキャッシュの実装は行わず、「ホーム画面に追加」で
+     フルスクリーン起動できる状態（Web App Manifest + 各種メタタグ）のみを提供する。
+========================================================= */
+function roundRectPath(ctx,x,y,w,h,r){
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);
+  ctx.arcTo(x+w,y,x+w,y+h,r);
+  ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r);
+  ctx.arcTo(x,y,x+w,y,r);
+  ctx.closePath();
+}
+// アイコンの絵柄（サン＋ホライズンバー）を描画する。中心基準の座標系のため、
+// 呼び出し側でctx.scaleを掛ければセーフゾーン対応の縮小描画にもそのまま使える。
+function drawIconGlyph(ctx,size){
+  ctx.fillStyle = "#FBF8F4";
+  ctx.beginPath(); ctx.arc(size*0.5, size*0.5, size*0.27, 0, Math.PI*2); ctx.fill();
+  ctx.fillStyle = "#7D5A73";
+  roundRectPath(ctx, size*0.2, size*0.76, size*0.6, size*0.07, size*0.035); ctx.fill();
+}
+// 外部画像ファイルを一切使わず、Canvasでアプリアイコンを生成しPNGのDataURIとして返す。
+// maskable=true の場合は、Androidのアダプティブアイコン用マスクで絵柄が
+// 切り欠かれないよう、背景を正方形いっぱいに塗った上で絵柄はセーフゾーン
+// （中央80%）に収まるよう縮小して描画する。
+function generateIconDataUri(size, maskable){
+  try{
+    const canvas = document.createElement("canvas");
+    canvas.width = size; canvas.height = size;
+    const ctx = canvas.getContext("2d");
+    if(!ctx) return null;
+    if(maskable){
+      ctx.fillStyle = "#D9A441";
+      ctx.fillRect(0,0,size,size);
+      ctx.save();
+      ctx.translate(size/2, size/2);
+      ctx.scale(0.8, 0.8);
+      ctx.translate(-size/2, -size/2);
+      drawIconGlyph(ctx, size);
+      ctx.restore();
+    }else{
+      ctx.fillStyle = "#D9A441";
+      roundRectPath(ctx,0,0,size,size,size*0.22); ctx.fill();
+      drawIconGlyph(ctx, size);
+    }
+    return canvas.toDataURL("image/png");
+  }catch(e){ return null; }
+}
+
+function injectManifest(){
+  try{
+    const icon192 = generateIconDataUri(192, false);
+    const icon512 = generateIconDataUri(512, false);
+    const icon192Mask = generateIconDataUri(192, true);
+    const icon512Mask = generateIconDataUri(512, true);
+    const icons = [];
+    if(icon192) icons.push({src:icon192, sizes:"192x192", type:"image/png", purpose:"any"});
+    if(icon512) icons.push({src:icon512, sizes:"512x512", type:"image/png", purpose:"any"});
+    if(icon192Mask) icons.push({src:icon192Mask, sizes:"192x192", type:"image/png", purpose:"maskable"});
+    if(icon512Mask) icons.push({src:icon512Mask, sizes:"512x512", type:"image/png", purpose:"maskable"});
+    const manifest = {
+      name: "MindSwitch - 朝のマインドセット",
+      short_name: "MindSwitch",
+      description: "毎朝約3分でマインドをセットする朝専用アプリ",
+      start_url: "./",
+      scope: "./",
+      display: "standalone",
+      orientation: "portrait",
+      background_color: "#FBF8F4",
+      theme_color: "#F4A94B",
+      icons: icons
+    };
+    // 要求どおり、単一HTML内でData URI形式のマニフェストとして注入する
+    const dataUri = "data:application/manifest+json," + encodeURIComponent(JSON.stringify(manifest));
+    let link = document.querySelector('link[rel="manifest"]');
+    if(!link){ link = document.createElement("link"); link.setAttribute("rel","manifest"); document.head.appendChild(link); }
+    link.setAttribute("href", dataUri);
+
+    // iOSのホーム画面アイコン（apple-touch-icon はSVGよりPNGの互換性が高いため生成したPNGを使用）
+    if(icon192){
+      let atLink = document.querySelector('link[rel="apple-touch-icon"]');
+      if(!atLink){ atLink = document.createElement("link"); atLink.setAttribute("rel","apple-touch-icon"); document.head.appendChild(atLink); }
+      atLink.setAttribute("href", icon192);
+    }
+  }catch(e){ console.warn("MindSwitch: マニフェストの注入に失敗しました", e); }
+}
+
+/* =========================================================
+   19. 初期化フロー
+========================================================= */
+async function init(){
+  try{ history.replaceState({screen:"home"}, "", "#home"); }catch(e){}
+  injectManifest();
+  const source = await loadAppData();
+  applyTheme(); applyFontSize();
+  if(AppData.settings.notifEnabled){ setupNotifTimer(); }
+  checkStorageQuota();
+
+  // 初回起動時の自動バックアップ（1時間に1回程度に抑制）
+  const lastBk = AppData.meta.lastBackupAt ? new Date(AppData.meta.lastBackupAt).getTime() : 0;
+  if(Date.now() - lastBk > 3600*1000){
+    createBackupGeneration("起動時の自動バックアップ");
+    await saveNowImmediate();
+  }
+
+  if(!AppData.meta.firstBackupPromptShownAt){
+    AppData.meta.firstBackupPromptShownAt = nowIso();
+    scheduleSave();
+  }
+
+  if(source === "fresh"){
+    showToast("ようこそ。使い方はホームの「使い方・ヘルプ」からご確認いただけます。");
+  }else if(source === "backup-recovery"){
+    showToast("保存データの一部に問題があったため、直近のバックアップから復旧しました。");
+  }
+
+  renderHome();
+  showScreen("home", {noHistory:true});
+
+  // 前回起動時に未完了・修正未完了だった場合の軽いリマインド
+  if(AppData.draft && AppData.draft.date === todayLocalStr()){
+    const msg = AppData.draft.editingRecordId
+      ? "前回の修正の続きの下書きがあります。「修正の続きから再開」で再開できます。"
+      : "前回の続きの下書きがあります。「前回の続きから再開」で再開できます。";
+    setTimeout(()=> showToast(msg), 600);
+  }
+}
+init();
+
+})();
+</script>
+</body>
+</html>
